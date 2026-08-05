@@ -221,6 +221,5 @@ function renderInboxList(){
 $('#loginForm').onsubmit=async e=>{e.preventDefault();const username=$('#username').value.trim(),email=username.includes('@')?username:`${username}@olitec.local`;const {error}=await db.auth.signInWithPassword({email,password:$('#password').value});if(error){$('#loginError').textContent='Accesso non riuscito: '+error.message;$('#loginError').classList.remove('hidden');return}start()};
 $('#logout').onclick=async()=>{await db.auth.signOut();$('#appView').classList.add('hidden');$('#loginView').classList.remove('hidden')};
 async function start(){try{view='menu';await load();$('#loginView').classList.add('hidden');$('#appView').classList.remove('hidden');db.channel('olitec-live').on('postgres_changes',{event:'*',schema:'public'},()=>load().catch(()=>{})).subscribe()}catch(e){$('#loginError').textContent='Database non pronto: '+e.message;$('#loginError').classList.remove('hidden')}}
-db.auth.getSession().then(({data:{session}})=>{if(session)start()});
 </script>
 </body></html>
