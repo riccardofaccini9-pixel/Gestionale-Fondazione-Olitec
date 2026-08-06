@@ -15,6 +15,7 @@ dialog{border:0;border-radius:14px;padding:0;width:min(560px,calc(100vw - 28px))
 <section class="app hidden" id="appView"><aside><div class="brand"><small>Fondazione</small><strong>Olitec</strong></div><nav id="nav"></nav><button class="secondary logout" id="logout">Esci</button></aside><main><div id="status"></div><section id="menuView" class="view"></section><section id="membersView" class="view hidden"></section><section id="structuresView" class="view hidden"></section><section id="gradesView" class="view hidden"></section><section id="groupsView" class="view hidden"></section><section id="notificationsView" class="view hidden"></section><section id="inboxView" class="view hidden"></section><section id="inventoryView" class="view hidden"></section><section id="inventoryFoodView" class="view hidden"></section><section id="inventoryEquipmentView" class="view hidden"></section></main></section>
 <dialog id="detailDialog"><div class="modal"><div class="modal-head"><span></span><button class="close" type="button" id="closeDetail" aria-label="Chiudi">×</button></div><div id="detailContent"></div><div class="actions" style="margin-top:16px"><button class="secondary" type="button" id="editFromDetail">Modifica anagrafica</button></div></div></dialog>
 <dialog id="photoDialog"><div class="modal"><div class="modal-head"><h2 id="photoTitle">Foto profilo</h2><button class="close" type="button" id="closePhoto" aria-label="Chiudi">×</button></div><img id="fullPhoto" alt="Foto profilo" style="width:100%;max-height:70vh;object-fit:contain;border-radius:10px"></div></dialog>
+<dialog id="documentDialog" style="width:min(900px,calc(100vw - 28px))"><div class="modal"><div class="modal-head"><h2 id="documentTitle">Documento</h2><button class="close" type="button" id="closeDocument" aria-label="Chiudi">×</button></div><iframe id="documentFrame" style="width:100%;height:75vh;border:0;border-radius:10px" title="Documento"></iframe></div></dialog>
 <script>
 const SUPABASE_URL='https://xiqihzndgvhmaygsrcdh.supabase.co';
 const SUPABASE_KEY='sb_publishable_AeGBs64qTcLzvZppepy8qg_7YOdivrE';
@@ -117,7 +118,7 @@ window.showMember=id=>{
   const m=members.find(x=>x.id===id); if(!m) return;
   detailMemberId=id;
   const photo=m.photo_url?`<img class="detail-photo" src="${m.photo_url}" alt="">`:`<span class="detail-photo">${initials(m)}</span>`;
-  $('#detailContent').innerHTML=`<div class="detail-head">${photo}<div><h2 style="margin:0 0 4px">${escape(m.first_name)} ${escape(m.last_name)}</h2><span class="grade-badge">${m.grades?.image_url?`<img class="grade-thumb" src="${m.grades.image_url}" alt="">`:''}${escape(m.grades?.name||'—')}</span></div></div><div class="detail-list"><div><span>Data di nascita</span>${italianDate(m.birth_date)}</div><div><span>Data di arrivo</span>${italianDate(m.arrival_date)}</div><div><span>Permanenza in Fondazione</span>${duration(m.arrival_date)}</div><div><span>Strutture di residenza</span>${(m.member_structures||[]).map(x=>escape(x.structures?.name)).join(', ')||'—'}</div><div><span>Email</span>${escape(m.email)}</div><div><span>Numero di telefono</span>${escape(m.phone||'—')}</div></div><div class="actions" style="margin-top:16px">${m.id_card_path?`<button class="secondary" type="button" onclick="openMemberDocument('${m.id_card_path}')">Apri carta d'identità</button>`:''}${m.acceptance_letter_path?`<button class="secondary" type="button" onclick="openMemberDocument('${m.acceptance_letter_path}')">Apri lettera di accettazione</button>`:''}</div>`;
+  $('#detailContent').innerHTML=`<div class="detail-head">${photo}<div><h2 style="margin:0 0 4px">${escape(m.first_name)} ${escape(m.last_name)}</h2><span class="grade-badge">${m.grades?.image_url?`<img class="grade-thumb" src="${m.grades.image_url}" alt="">`:''}${escape(m.grades?.name||'—')}</span></div></div><div class="detail-list"><div><span>Data di nascita</span>${italianDate(m.birth_date)}</div><div><span>Data di arrivo</span>${italianDate(m.arrival_date)}</div><div><span>Permanenza in Fondazione</span>${duration(m.arrival_date)}</div><div><span>Strutture di residenza</span>${(m.member_structures||[]).map(x=>escape(x.structures?.name)).join(', ')||'—'}</div><div><span>Email</span>${escape(m.email)}</div><div><span>Numero di telefono</span>${escape(m.phone||'—')}</div></div><div class="actions" style="margin-top:16px">${m.id_card_path?`<button class="secondary" type="button" onclick="openMemberDocument('${m.id_card_path}','Carta d\\'identità')">Apri carta d'identità</button>`:''}${m.acceptance_letter_path?`<button class="secondary" type="button" onclick="openMemberDocument('${m.acceptance_letter_path}','Lettera di accettazione')">Apri lettera di accettazione</button>`:''}</div>`;
   $('#detailDialog').showModal();
 };
 $('#closeDetail').onclick=()=>$('#detailDialog').close();
@@ -263,16 +264,22 @@ function renderNotifications(){
   };
 }
 
-window.openMemberDocument=async path=>{
+function showDocument(signedUrl,title){
+  $('#documentTitle').textContent=title||'Documento';
+  $('#documentFrame').src=signedUrl;
+  $('#documentDialog').showModal();
+}
+window.openMemberDocument=async(path,title)=>{
   const r=await db.storage.from('member-documents').createSignedUrl(path,3600);
   if(r.error) return flash(r.error.message,true);
-  window.open(r.data.signedUrl,'_blank');
+  showDocument(r.data.signedUrl,title);
 };
-window.openNotificationPdf=async path=>{
+window.openNotificationPdf=async(path,title)=>{
   const r=await db.storage.from('notification-pdfs').createSignedUrl(path,3600);
   if(r.error) return flash(r.error.message,true);
-  window.open(r.data.signedUrl,'_blank');
+  showDocument(r.data.signedUrl,title);
 };
+$('#closeDocument').onclick=()=>{$('#documentDialog').close();$('#documentFrame').src='about:blank';};
 
 function renderInbox(){
   const currentId=$('#inboxMember')?.value||members[0]?.id||'';
@@ -283,7 +290,7 @@ function renderInbox(){
 function renderInboxList(){
   const memberId=$('#inboxMember').value;
   const messages=notifications.filter(n=>(n.notification_recipients||[]).some(x=>x.member_id===memberId));
-  $('#inboxList').innerHTML=messages.map(n=>`<div class="item"><span><b>${new Date(n.created_at).toLocaleString('it-IT')}</b><br><small>${escape(n.body||'PDF allegato senza testo')}</small></span>${n.pdf_url?`<button class="secondary" onclick="openNotificationPdf('${n.pdf_url}')">Apri PDF: ${escape(n.pdf_name)}</button>`:''}</div>`).join('')||'<p class="empty">Nessuna notifica ricevuta.</p>';
+  $('#inboxList').innerHTML=messages.map(n=>`<div class="item"><span><b>${new Date(n.created_at).toLocaleString('it-IT')}</b><br><small>${escape(n.body||'PDF allegato senza testo')}</small></span>${n.pdf_url?`<button class="secondary" onclick="openNotificationPdf('${n.pdf_url}','${escape(n.pdf_name).replace(/'/g,"\\'")}')">Apri PDF: ${escape(n.pdf_name)}</button>`:''}</div>`).join('')||'<p class="empty">Nessuna notifica ricevuta.</p>';
 }
 
 $('#loginForm').onsubmit=async e=>{e.preventDefault();const username=$('#username').value.trim(),email=username.includes('@')?username:`${username}@olitec.local`;const {error}=await db.auth.signInWithPassword({email,password:$('#password').value});if(error){$('#loginError').textContent='Accesso non riuscito: '+error.message;$('#loginError').classList.remove('hidden');return}start()};
