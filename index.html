@@ -74,10 +74,18 @@ function renderInventory(){
   $('#inventoryView').innerHTML=`<div class="top"><div><h1>Inventario</h1><p class="subtitle">Scegli quale inventario consultare.</p></div></div><div class="menu-grid"><button class="menu-card" data-view="inventoryFood"><b>Beni alimentari</b><span>Scorte alimentari.</span></button><button class="menu-card" data-view="inventoryEquipment"><b>Attrezzature</b><span>Strumenti, dotazioni e materiali durevoli.</span></button><button class="menu-card" data-view="inventoryClothing"><b>Vestiario</b><span>Uniformi, borse e capi di abbigliamento.</span></button><button class="menu-card" data-view="inventoryConsumables"><b>Materiale di consumo</b><span>Prodotti per la pulizia e materiale di consumo.</span></button></div>`;
   $('#inventoryView').querySelectorAll('[data-view]').forEach(b=>b.onclick=()=>{view=b.dataset.view;render()});
 }
+const sizeOrder=['XXXXL','XXXL','XXL','XL','L','M','S','XS','XXS'];
+function sizeRank(variant){
+  if(!variant) return 999;
+  const clean=variant.trim().toUpperCase().replace(/[^A-Z]/g,'');
+  const idx=sizeOrder.indexOf(clean);
+  return idx===-1?998:idx;
+}
 function inventoryListHTML(category){
   const items=inventoryItems.filter(it=>it.category===category);
   const groups=new Map();
   items.forEach(it=>{ if(!groups.has(it.name)) groups.set(it.name,[]); groups.get(it.name).push(it); });
+  groups.forEach(list=>list.sort((a,b)=>sizeRank(a.variant)-sizeRank(b.variant)));
   const itemRow=(it,category,label)=>`<tr class="${Number(it.quantity)<=0?'out-of-stock':''}"><td>${label}</td><td>${it.quantity}</td><td>${it.unit_cost!=null?'€ '+Number(it.unit_cost).toFixed(2):'—'}</td><td>${escape(it.notes||'—')}</td><td><button class="secondary" onclick="editInventoryItem('${it.id}','${category}')">Modifica</button></td></tr>`;
   let rows='',gi=0;
   groups.forEach((list,name)=>{
