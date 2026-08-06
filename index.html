@@ -15,7 +15,7 @@ dialog{border:0;border-radius:14px;padding:0;width:min(560px,calc(100vw - 28px))
 <section class="app hidden" id="appView"><aside><div class="brand"><small>Fondazione</small><strong>Olitec</strong></div><nav id="nav"></nav><button class="secondary logout" id="logout">Esci</button></aside><main><div id="status"></div><section id="menuView" class="view"></section><section id="membersView" class="view hidden"></section><section id="structuresView" class="view hidden"></section><section id="gradesView" class="view hidden"></section><section id="groupsView" class="view hidden"></section><section id="notificationsView" class="view hidden"></section><section id="inboxView" class="view hidden"></section><section id="inventoryView" class="view hidden"></section><section id="inventoryFoodView" class="view hidden"></section><section id="inventoryEquipmentView" class="view hidden"></section></main></section>
 <dialog id="detailDialog"><div class="modal"><div class="modal-head"><span></span><button class="close" type="button" id="closeDetail" aria-label="Chiudi">×</button></div><div id="detailContent"></div><div class="actions" style="margin-top:16px"><button class="secondary" type="button" id="editFromDetail">Modifica anagrafica</button></div></div></dialog>
 <dialog id="photoDialog"><div class="modal"><div class="modal-head"><h2 id="photoTitle">Foto profilo</h2><button class="close" type="button" id="closePhoto" aria-label="Chiudi">×</button></div><img id="fullPhoto" alt="Foto profilo" style="width:100%;max-height:70vh;object-fit:contain;border-radius:10px"></div></dialog>
-<dialog id="documentDialog" style="width:min(900px,calc(100vw - 28px))"><div class="modal"><div class="modal-head"><h2 id="documentTitle">Documento</h2><button class="close" type="button" id="closeDocument" aria-label="Chiudi">×</button></div><iframe id="documentFrame" style="width:100%;height:75vh;border:0;border-radius:10px" title="Documento"></iframe></div></dialog>
+<dialog id="documentDialog" style="width:min(900px,calc(100vw - 28px))"><div class="modal"><div class="modal-head"><h2 id="documentTitle">Documento</h2><button class="close" type="button" id="closeDocument" aria-label="Chiudi">×</button></div><img id="documentImage" alt="Documento" style="width:100%;max-height:75vh;object-fit:contain;border-radius:10px;display:none"><iframe id="documentFrame" style="width:100%;height:75vh;border:0;border-radius:10px" title="Documento"></iframe></div></dialog>
 <script>
 const SUPABASE_URL='https://xiqihzndgvhmaygsrcdh.supabase.co';
 const SUPABASE_KEY='sb_publishable_AeGBs64qTcLzvZppepy8qg_7YOdivrE';
@@ -264,22 +264,26 @@ function renderNotifications(){
   };
 }
 
-function showDocument(signedUrl,title){
+function showDocument(signedUrl,title,path){
   $('#documentTitle').textContent=title||'Documento';
-  $('#documentFrame').src=signedUrl;
+  const isImage=/\.(jpe?g|png|gif|webp|bmp|heic)$/i.test(path||'');
+  $('#documentImage').style.display=isImage?'':'none';
+  $('#documentFrame').style.display=isImage?'none':'';
+  $('#documentImage').src=isImage?signedUrl:'';
+  $('#documentFrame').src=isImage?'about:blank':signedUrl;
   $('#documentDialog').showModal();
 }
 window.openMemberDocument=async(path,title)=>{
   const r=await db.storage.from('member-documents').createSignedUrl(path,3600);
   if(r.error) return flash(r.error.message,true);
-  showDocument(r.data.signedUrl,title);
+  showDocument(r.data.signedUrl,title,path);
 };
 window.openNotificationPdf=async(path,title)=>{
   const r=await db.storage.from('notification-pdfs').createSignedUrl(path,3600);
   if(r.error) return flash(r.error.message,true);
-  showDocument(r.data.signedUrl,title);
+  showDocument(r.data.signedUrl,title,path);
 };
-$('#closeDocument').onclick=()=>{$('#documentDialog').close();$('#documentFrame').src='about:blank';};
+$('#closeDocument').onclick=()=>{$('#documentDialog').close();$('#documentFrame').src='about:blank';$('#documentImage').src='';};
 
 function renderInbox(){
   const currentId=$('#inboxMember')?.value||members[0]?.id||'';
