@@ -21,7 +21,7 @@ dialog{border:0;border-radius:14px;padding:0;width:min(560px,calc(100vw - 28px))
 const SUPABASE_URL='https://xiqihzndgvhmaygsrcdh.supabase.co';
 const SUPABASE_KEY='sb_publishable_AeGBs64qTcLzvZppepy8qg_7YOdivrE';
 const db=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
-const $=s=>document.querySelector(s); let structures=[],grades=[],members=[],groups=[],notifications=[],inventoryItems=[],view='menu';
+const $=s=>document.querySelector(s); let structures=[],grades=[],members=[],groups=[],notifications=[],inventoryItems=[],view='menu',inventoryStructureId=null;
 const escape=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const initials=m=>((m.first_name||'?')[0]+(m.last_name||'?')[0]).toUpperCase();
 const italianDate=d=>d?new Date(d+'T00:00:00').toLocaleDateString('it-IT'):'—';
@@ -70,8 +70,17 @@ function renderMenu(){
   $('#menuView').querySelectorAll('[data-view]').forEach(b=>b.onclick=()=>{view=b.dataset.view;render()});
 }
 
+function structureSelectorHTML(){
+  const options=structures.map(s=>`<option value="${s.id}" ${s.id===inventoryStructureId?'selected':''}>${escape(s.name)}</option>`).join('');
+  return `<section class="card" style="padding:16px 20px"><label style="margin:0">Struttura<select id="inventoryStructureSelect">${options}</select></label></section>`;
+}
+function bindStructureSelector(rerender){
+  $('#inventoryStructureSelect').onchange=e=>{ inventoryStructureId=e.target.value; rerender(); };
+}
 function renderInventory(){
-  $('#inventoryView').innerHTML=`<div class="top"><div><h1>Inventario</h1><p class="subtitle">Scegli quale inventario consultare.</p></div></div><div class="menu-grid"><button class="menu-card" data-view="inventoryFood"><b>Beni alimentari</b><span>Scorte alimentari.</span></button><button class="menu-card" data-view="inventoryEquipment"><b>Attrezzature</b><span>Strumenti, dotazioni e materiali durevoli.</span></button><button class="menu-card" data-view="inventoryClothing"><b>Vestiario</b><span>Uniformi, borse e capi di abbigliamento.</span></button><button class="menu-card" data-view="inventoryConsumables"><b>Materiale di consumo</b><span>Prodotti per la pulizia e materiale di consumo.</span></button></div>`;
+  if(!inventoryStructureId && structures.length) inventoryStructureId=structures[0].id;
+  $('#inventoryView').innerHTML=`<div class="top"><div><h1>Inventario</h1><p class="subtitle">Scegli quale inventario consultare.</p></div></div>${structureSelectorHTML()}<div class="menu-grid"><button class="menu-card" data-view="inventoryFood"><b>Beni alimentari</b><span>Scorte alimentari.</span></button><button class="menu-card" data-view="inventoryEquipment"><b>Attrezzature</b><span>Strumenti, dotazioni e materiali durevoli.</span></button><button class="menu-card" data-view="inventoryClothing"><b>Vestiario</b><span>Uniformi, borse e capi di abbigliamento.</span></button><button class="menu-card" data-view="inventoryConsumables"><b>Materiale di consumo</b><span>Prodotti per la pulizia e materiale di consumo.</span></button></div>`;
+  bindStructureSelector(renderInventory);
   $('#inventoryView').querySelectorAll('[data-view]').forEach(b=>b.onclick=()=>{view=b.dataset.view;render()});
 }
 const sizeOrder=['XXXXL','XXXL','XXL','XL','L','M','S','XS','XXS'];
@@ -82,7 +91,7 @@ function sizeRank(variant){
   return idx===-1?998:idx;
 }
 function inventoryListHTML(category){
-  const items=inventoryItems.filter(it=>it.category===category);
+  const items=inventoryItems.filter(it=>it.category===category && it.structure_id===inventoryStructureId);
   const groups=new Map();
   items.forEach(it=>{ if(!groups.has(it.name)) groups.set(it.name,[]); groups.get(it.name).push(it); });
   groups.forEach(list=>list.sort((a,b)=>sizeRank(a.variant)-sizeRank(b.variant)));
@@ -114,7 +123,9 @@ const inventoryCategoryMeta={
 };
 function renderInventoryCategory(category){
   const meta=inventoryCategoryMeta[category];
-  $('#'+meta.viewId).innerHTML=`<div class="top"><div><h1>${meta.title}</h1><p class="subtitle">${meta.subtitle}</p></div><button class="primary" id="newItem">+ Nuovo articolo</button></div><section class="card">${inventoryListHTML(category)}</section>`;
+  if(!inventoryStructureId && structures.length) inventoryStructureId=structures[0].id;
+  $('#'+meta.viewId).innerHTML=`<div class="top"><div><h1>${meta.title}</h1><p class="subtitle">${meta.subtitle}</p></div><button class="primary" id="newItem">+ Nuovo articolo</button></div>${structureSelectorHTML()}<section class="card">${inventoryListHTML(category)}</section>`;
+  bindStructureSelector(()=>renderInventoryCategory(category));
   $('#newItem').onclick=()=>inventoryForm({},category);
 }
 function renderInventoryFood(){renderInventoryCategory('alimentari')}
@@ -131,7 +142,7 @@ function inventoryForm(it={},category){
     e.preventDefault();
     const data=Object.fromEntries(new FormData(e.target));
     data.quantity=Number(data.quantity); data.unit_cost=data.unit_cost===''?null:Number(data.unit_cost); data.notes=data.notes||null; data.variant=data.variant||null;
-    if(!it.id) data.category=category;
+    if(!it.id){ data.category=category; data.structure_id=inventoryStructureId; }
     const r=it.id?await db.from('inventory_items').update(data).eq('id',it.id):await db.from('inventory_items').insert(data);
     if(r.error) return flash(r.error.message,true);
     flash('Articolo salvato.'); await load();
