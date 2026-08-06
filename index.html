@@ -72,15 +72,15 @@ function renderMenu(){
 
 function structureSelectorHTML(){
   const options=structures.map(s=>`<option value="${s.id}" ${s.id===inventoryStructureId?'selected':''}>${escape(s.name)}</option>`).join('');
-  return `<section class="card" style="padding:16px 20px"><label style="margin:0">Struttura<select id="inventoryStructureSelect">${options}</select></label></section>`;
+  return `<section class="card" style="padding:16px 20px"><label style="margin:0">Struttura<select class="inventory-structure-select">${options}</select></label></section>`;
 }
-function bindStructureSelector(rerender){
-  $('#inventoryStructureSelect').onchange=e=>{ inventoryStructureId=e.target.value; rerender(); };
+function bindStructureSelector(viewId,rerender){
+  document.querySelector('#'+viewId+' .inventory-structure-select').onchange=e=>{ inventoryStructureId=e.target.value; rerender(); };
 }
 function renderInventory(){
   if(!inventoryStructureId && structures.length) inventoryStructureId=structures[0].id;
   $('#inventoryView').innerHTML=`<div class="top"><div><h1>Inventario</h1><p class="subtitle">Scegli quale inventario consultare.</p></div></div>${structureSelectorHTML()}<div class="menu-grid"><button class="menu-card" data-view="inventoryFood"><b>Beni alimentari</b><span>Scorte alimentari.</span></button><button class="menu-card" data-view="inventoryEquipment"><b>Attrezzature</b><span>Strumenti, dotazioni e materiali durevoli.</span></button><button class="menu-card" data-view="inventoryClothing"><b>Vestiario</b><span>Uniformi, borse e capi di abbigliamento.</span></button><button class="menu-card" data-view="inventoryConsumables"><b>Materiale di consumo</b><span>Prodotti per la pulizia e materiale di consumo.</span></button></div>`;
-  bindStructureSelector(renderInventory);
+  bindStructureSelector('inventoryView',renderInventory);
   $('#inventoryView').querySelectorAll('[data-view]').forEach(b=>b.onclick=()=>{view=b.dataset.view;render()});
 }
 const sizeOrder=['XXXXL','XXXL','XXL','XL','L','M','S','XS','XXS'];
@@ -125,7 +125,7 @@ function renderInventoryCategory(category){
   const meta=inventoryCategoryMeta[category];
   if(!inventoryStructureId && structures.length) inventoryStructureId=structures[0].id;
   $('#'+meta.viewId).innerHTML=`<div class="top"><div><h1>${meta.title}</h1><p class="subtitle">${meta.subtitle}</p></div><button class="primary" id="newItem">+ Nuovo articolo</button></div>${structureSelectorHTML()}<section class="card">${inventoryListHTML(category)}</section>`;
-  bindStructureSelector(()=>renderInventoryCategory(category));
+  bindStructureSelector(meta.viewId,()=>renderInventoryCategory(category));
   $('#newItem').onclick=()=>inventoryForm({},category);
 }
 function renderInventoryFood(){renderInventoryCategory('alimentari')}
