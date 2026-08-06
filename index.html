@@ -12,14 +12,14 @@ dialog{border:0;border-radius:14px;padding:0;width:min(560px,calc(100vw - 28px))
 @media(max-width:760px){.app{display:block}aside{padding:13px 16px;position:sticky;top:0;z-index:3;flex-direction:row;align-items:center}.brand small{display:none}.brand strong{font-size:1.2rem}nav{display:flex;overflow:auto;flex:1}nav button{white-space:nowrap}.logout{margin:0}main{padding:24px 16px}.top{display:block}.top .primary{margin-top:14px;width:100%}.form-grid,.two{grid-template-columns:1fr}.span-2{grid-column:span 1}}
 </style></head><body>
 <section class="login" id="loginView"><form class="login-card" id="loginForm"><h1>Olitec</h1><p>Accesso alla gestione condivisa.</p><div id="loginError" class="notice hidden"></div><label>Username<input id="username" required autocomplete="username"></label><label>Password<input id="password" type="password" required autocomplete="current-password"></label><button class="primary" type="submit">Accedi</button><p class="footer">Primo accesso: admin / admin</p></form></section>
-<section class="app hidden" id="appView"><aside><div class="brand"><small>Fondazione</small><strong>Olitec</strong></div><nav id="nav"></nav><button class="secondary logout" id="logout">Esci</button></aside><main><div id="status"></div><section id="menuView" class="view"></section><section id="membersView" class="view hidden"></section><section id="structuresView" class="view hidden"></section><section id="gradesView" class="view hidden"></section><section id="groupsView" class="view hidden"></section><section id="notificationsView" class="view hidden"></section><section id="inboxView" class="view hidden"></section></main></section>
+<section class="app hidden" id="appView"><aside><div class="brand"><small>Fondazione</small><strong>Olitec</strong></div><nav id="nav"></nav><button class="secondary logout" id="logout">Esci</button></aside><main><div id="status"></div><section id="menuView" class="view"></section><section id="membersView" class="view hidden"></section><section id="structuresView" class="view hidden"></section><section id="gradesView" class="view hidden"></section><section id="groupsView" class="view hidden"></section><section id="notificationsView" class="view hidden"></section><section id="inboxView" class="view hidden"></section><section id="inventoryView" class="view hidden"></section></main></section>
 <dialog id="detailDialog"><div class="modal"><div class="modal-head"><span></span><button class="close" type="button" id="closeDetail" aria-label="Chiudi">×</button></div><div id="detailContent"></div><div class="actions" style="margin-top:16px"><button class="secondary" type="button" id="editFromDetail">Modifica anagrafica</button></div></div></dialog>
 <dialog id="photoDialog"><div class="modal"><div class="modal-head"><h2 id="photoTitle">Foto profilo</h2><button class="close" type="button" id="closePhoto" aria-label="Chiudi">×</button></div><img id="fullPhoto" alt="Foto profilo" style="width:100%;max-height:70vh;object-fit:contain;border-radius:10px"></div></dialog>
 <script>
 const SUPABASE_URL='https://xiqihzndgvhmaygsrcdh.supabase.co';
 const SUPABASE_KEY='sb_publishable_AeGBs64qTcLzvZppepy8qg_7YOdivrE';
 const db=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
-const $=s=>document.querySelector(s); let structures=[],grades=[],members=[],groups=[],notifications=[],view='menu';
+const $=s=>document.querySelector(s); let structures=[],grades=[],members=[],groups=[],notifications=[],inventoryItems=[],view='menu';
 const escape=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const initials=m=>((m.first_name||'?')[0]+(m.last_name||'?')[0]).toUpperCase();
 const italianDate=d=>d?new Date(d+'T00:00:00').toLocaleDateString('it-IT'):'—';
@@ -27,30 +27,61 @@ function duration(date){if(!date) return '—';const start=new Date(date+'T00:00
 function flash(message,error=false){$('#status').innerHTML=`<div class="notice ${error?'':'ok'}">${escape(message)}</div>`;setTimeout(()=>$('#status').innerHTML='',4500)}
 
 async function load(){
-  const [s,g,m,gr,nt]=await Promise.all([
+  const [s,g,m,gr,nt,inv]=await Promise.all([
     db.from('structures').select('*').order('name'),
     db.from('grades').select('*').order('name'),
     db.from('members').select('*,grades(name,image_url),member_structures(structures(id,name))').order('last_name'),
     db.from('member_groups').select('*,group_members(member_id)').order('name'),
-    db.from('notifications').select('*,notification_recipients(member_id)').order('created_at',{ascending:false})
+    db.from('notifications').select('*,notification_recipients(member_id)').order('created_at',{ascending:false}),
+    db.from('inventory_items').select('*').order('name')
   ]);
-  for(const r of[s,g,m,gr,nt]) if(r.error) throw r.error;
-  structures=s.data; grades=g.data; members=m.data; groups=gr.data; notifications=nt.data;
+  for(const r of[s,g,m,gr,nt,inv]) if(r.error) throw r.error;
+  structures=s.data; grades=g.data; members=m.data; groups=gr.data; notifications=nt.data; inventoryItems=inv.data;
   render();
 }
 
-const navItems=[['menu','Menu'],['members','Anagrafiche'],['structures','Strutture'],['grades','Gradi'],['groups','Crea gruppi'],['notifications','Invia notifica'],['inbox','Ricevi notifiche']];
+const navTree={
+  menu:[['members','Anagrafiche'],['inventory','Inventario']],
+  members:[['menu','Menu'],['structures','Strutture'],['grades','Gradi'],['notifications','Invia notifica'],['inbox','Ricevi notifiche']],
+  structures:[['members','Anagrafiche']],
+  grades:[['members','Anagrafiche']],
+  notifications:[['members','Anagrafiche'],['groups','Crea gruppi']],
+  groups:[['notifications','Invia notifica']],
+  inbox:[['members','Anagrafiche']],
+  inventory:[['menu','Menu']]
+};
 function render(){
-  $('#nav').innerHTML=navItems.map(([id,label])=>`<button data-view="${id}" class="${view===id?'active':''}">${label}</button>`).join('');
+  const entries=navTree[view]||[];
+  $('#nav').innerHTML=entries.map(([id,label])=>`<button data-view="${id}">${label}</button>`).join('');
   $('#nav').querySelectorAll('button').forEach(b=>b.onclick=()=>{view=b.dataset.view;render()});
   document.querySelectorAll('.view').forEach(x=>x.classList.add('hidden'));
   $('#'+view+'View').classList.remove('hidden');
-  ({menu:renderMenu,members:renderMembers,structures:renderStructures,grades:renderGrades,groups:renderGroups,notifications:renderNotifications,inbox:renderInbox})[view]();
+  ({menu:renderMenu,members:renderMembers,structures:renderStructures,grades:renderGrades,groups:renderGroups,notifications:renderNotifications,inbox:renderInbox,inventory:renderInventory})[view]();
 }
 
 function renderMenu(){
-  $('#menuView').innerHTML=`<div class="top"><div><h1>Menu</h1><p class="subtitle">Gestione della Fondazione Olivetti Tecnologia e Ricerca</p></div></div><div class="menu-grid"><button class="menu-card" data-view="members"><b>Anagrafiche</b><span>Consulta e gestisci le schede di tutti i membri, le strutture e i gradi.</span></button></div>`;
+  $('#menuView').innerHTML=`<div class="top"><div><h1>Menu</h1><p class="subtitle">Gestione della Fondazione Olivetti Tecnologia e Ricerca</p></div></div><div class="menu-grid"><button class="menu-card" data-view="members"><b>Anagrafiche</b><span>Consulta e gestisci le schede di tutti i membri, le strutture e i gradi.</span></button><button class="menu-card" data-view="inventory"><b>Inventario</b><span>Consulta e gestisci gli articoli e i relativi costi unitari.</span></button></div>`;
   $('#menuView').querySelectorAll('[data-view]').forEach(b=>b.onclick=()=>{view=b.dataset.view;render()});
+}
+
+function renderInventory(){
+  const rows=inventoryItems.map(it=>`<tr><td>${escape(it.name)}</td><td>${it.quantity}</td><td>${it.unit_cost!=null?'€ '+Number(it.unit_cost).toFixed(2):'—'}</td><td><button class="secondary" onclick="editInventoryItem('${it.id}')">Modifica</button></td></tr>`).join('');
+  $('#inventoryView').innerHTML=`<div class="top"><div><h1>Inventario</h1><p class="subtitle">Articoli disponibili e costi unitari.</p></div><button class="primary" id="newItem">+ Nuovo articolo</button></div><section class="card"><div class="table-wrap"><table><thead><tr><th>Articolo</th><th>Quantità</th><th>Costo unitario</th><th></th></tr></thead><tbody>${rows||'<tr><td colspan="4" class="empty">Nessun articolo.</td></tr>'}</tbody></table></div></section>`;
+  $('#newItem').onclick=()=>inventoryForm();
+}
+window.editInventoryItem=id=>inventoryForm(inventoryItems.find(i=>i.id===id));
+function inventoryForm(it={}){
+  $('#inventoryView').innerHTML=`<div class="top"><div><h1>${it.id?'Modifica':'Nuovo'} articolo</h1></div></div><form class="card" id="itemForm"><div class="form-grid"><label>Nome<input name="name" required value="${escape(it.name||'')}"></label><label>Quantità<input name="quantity" type="number" step="1" min="0" required value="${it.quantity??0}"></label><label>Costo unitario (€)<input name="unit_cost" type="number" step="0.01" min="0" value="${it.unit_cost??''}"></label></div><div class="actions" style="margin-top:20px"><button class="primary">Salva</button><button type="button" class="secondary" id="cancelItem">Annulla</button>${it.id?'<button type="button" class="danger" id="deleteItem">Elimina</button>':''}</div></form>`;
+  $('#cancelItem').onclick=renderInventory;
+  $('#itemForm').onsubmit=async e=>{
+    e.preventDefault();
+    const data=Object.fromEntries(new FormData(e.target));
+    data.quantity=Number(data.quantity); data.unit_cost=data.unit_cost===''?null:Number(data.unit_cost);
+    const r=it.id?await db.from('inventory_items').update(data).eq('id',it.id):await db.from('inventory_items').insert(data);
+    if(r.error) return flash(r.error.message,true);
+    flash('Articolo salvato.'); await load();
+  };
+  if(it.id) $('#deleteItem').onclick=async()=>{if(confirm('Eliminare questo articolo?')){const r=await db.from('inventory_items').delete().eq('id',it.id);if(r.error) flash(r.error.message,true); else {flash('Articolo eliminato.'); await load();}}};
 }
 
 const checkList=(id,items,checked=[])=>`<div class="check-list select-box" id="${id}">${items.map(x=>`<label class="check"><input type="checkbox" value="${x.id}" ${checked.includes(x.id)?'checked':''}>${escape(x.name)}</label>`).join('')||'<span class="empty">Nessun elemento.</span>'}</div>`;
