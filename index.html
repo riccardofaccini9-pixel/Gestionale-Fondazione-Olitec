@@ -12,7 +12,7 @@ dialog{border:0;border-radius:14px;padding:0;width:min(560px,calc(100vw - 28px))
 @media(max-width:760px){.app{display:block}aside{padding:13px 16px;position:sticky;top:0;z-index:3;flex-direction:row;align-items:center}.brand small{display:none}.brand strong{font-size:1.2rem}nav{display:flex;overflow:auto;flex:1}nav button{white-space:nowrap}.logout{margin:0}main{padding:24px 16px}.top{display:block}.top .primary{margin-top:14px;width:100%}.form-grid,.two{grid-template-columns:1fr}.span-2{grid-column:span 1}}
 </style></head><body>
 <section class="login" id="loginView"><form class="login-card" id="loginForm"><h1>Olitec</h1><p>Accesso alla gestione condivisa.</p><div id="loginError" class="notice hidden"></div><label>Username<input id="username" required autocomplete="username"></label><label>Password<input id="password" type="password" required autocomplete="current-password"></label><button class="primary" type="submit">Accedi</button><p class="footer">Primo accesso: admin / admin</p></form></section>
-<section class="app hidden" id="appView"><aside><div class="brand"><small>Fondazione</small><strong>Olitec</strong></div><nav id="nav"></nav><button class="secondary logout" id="logout">Esci</button></aside><main><div id="status"></div><section id="menuView" class="view"></section><section id="membersView" class="view hidden"></section><section id="structuresView" class="view hidden"></section><section id="gradesView" class="view hidden"></section><section id="groupsView" class="view hidden"></section><section id="notificationsView" class="view hidden"></section><section id="inboxView" class="view hidden"></section><section id="inventoryView" class="view hidden"></section><section id="inventoryFoodView" class="view hidden"></section><section id="inventoryEquipmentView" class="view hidden"></section></main></section>
+<section class="app hidden" id="appView"><aside><div class="brand"><small>Fondazione</small><strong>Olitec</strong></div><nav id="nav"></nav><button class="secondary logout" id="logout">Esci</button></aside><main><div id="status"></div><section id="menuView" class="view"></section><section id="membersView" class="view hidden"></section><section id="structuresView" class="view hidden"></section><section id="gradesView" class="view hidden"></section><section id="groupsView" class="view hidden"></section><section id="notificationsView" class="view hidden"></section><section id="inboxView" class="view hidden"></section><section id="inventoryView" class="view hidden"></section><section id="inventoryFoodView" class="view hidden"></section><section id="inventoryEquipmentView" class="view hidden"></section><section id="inventoryClothingView" class="view hidden"></section><section id="inventoryConsumablesView" class="view hidden"></section></main></section>
 <dialog id="detailDialog"><div class="modal"><div class="modal-head"><span></span><button class="close" type="button" id="closeDetail" aria-label="Chiudi">×</button></div><div id="detailContent"></div><div class="actions" style="margin-top:16px"><button class="secondary" type="button" id="editFromDetail">Modifica anagrafica</button></div></div></dialog>
 <dialog id="photoDialog"><div class="modal"><div class="modal-head"><h2 id="photoTitle">Foto profilo</h2><button class="close" type="button" id="closePhoto" aria-label="Chiudi">×</button></div><img id="fullPhoto" alt="Foto profilo" style="width:100%;max-height:70vh;object-fit:contain;border-radius:10px"></div></dialog>
 <dialog id="documentDialog" style="width:min(900px,calc(100vw - 28px))"><div class="modal"><div class="modal-head"><h2 id="documentTitle">Documento</h2><button class="close" type="button" id="closeDocument" aria-label="Chiudi">×</button></div><img id="documentImage" alt="Documento" style="width:100%;max-height:75vh;object-fit:contain;border-radius:10px;display:none"><iframe id="documentFrame" style="width:100%;height:75vh;border:0;border-radius:10px" title="Documento"></iframe></div></dialog>
@@ -49,9 +49,11 @@ const navTree={
   notifications:[['members','Anagrafiche'],['groups','Crea gruppi']],
   groups:[['notifications','Invia notifica']],
   inbox:[['members','Anagrafiche']],
-  inventory:[['menu','Menu'],['inventoryFood','Beni alimentari'],['inventoryEquipment','Attrezzature']],
+  inventory:[['menu','Menu'],['inventoryFood','Beni alimentari'],['inventoryEquipment','Attrezzature'],['inventoryClothing','Vestiario'],['inventoryConsumables','Materiale di consumo']],
   inventoryFood:[['inventory','Inventario']],
-  inventoryEquipment:[['inventory','Inventario']]
+  inventoryEquipment:[['inventory','Inventario']],
+  inventoryClothing:[['inventory','Inventario']],
+  inventoryConsumables:[['inventory','Inventario']]
 };
 function render(){
   const entries=navTree[view]||[];
@@ -59,7 +61,7 @@ function render(){
   $('#nav').querySelectorAll('button').forEach(b=>b.onclick=()=>{view=b.dataset.view;render()});
   document.querySelectorAll('.view').forEach(x=>x.classList.add('hidden'));
   $('#'+view+'View').classList.remove('hidden');
-  ({menu:renderMenu,members:renderMembers,structures:renderStructures,grades:renderGrades,groups:renderGroups,notifications:renderNotifications,inbox:renderInbox,inventory:renderInventory,inventoryFood:renderInventoryFood,inventoryEquipment:renderInventoryEquipment})[view]();
+  ({menu:renderMenu,members:renderMembers,structures:renderStructures,grades:renderGrades,groups:renderGroups,notifications:renderNotifications,inbox:renderInbox,inventory:renderInventory,inventoryFood:renderInventoryFood,inventoryEquipment:renderInventoryEquipment,inventoryClothing:renderInventoryClothing,inventoryConsumables:renderInventoryConsumables})[view]();
 }
 
 function renderMenu(){
@@ -68,31 +70,38 @@ function renderMenu(){
 }
 
 function renderInventory(){
-  $('#inventoryView').innerHTML=`<div class="top"><div><h1>Inventario</h1><p class="subtitle">Scegli quale inventario consultare.</p></div></div><div class="menu-grid"><button class="menu-card" data-view="inventoryFood"><b>Beni alimentari</b><span>Scorte di cibo e beni di consumo.</span></button><button class="menu-card" data-view="inventoryEquipment"><b>Attrezzature</b><span>Strumenti, dotazioni e materiali durevoli.</span></button></div>`;
+  $('#inventoryView').innerHTML=`<div class="top"><div><h1>Inventario</h1><p class="subtitle">Scegli quale inventario consultare.</p></div></div><div class="menu-grid"><button class="menu-card" data-view="inventoryFood"><b>Beni alimentari</b><span>Scorte alimentari.</span></button><button class="menu-card" data-view="inventoryEquipment"><b>Attrezzature</b><span>Strumenti, dotazioni e materiali durevoli.</span></button><button class="menu-card" data-view="inventoryClothing"><b>Vestiario</b><span>Uniformi, borse e capi di abbigliamento.</span></button><button class="menu-card" data-view="inventoryConsumables"><b>Materiale di consumo</b><span>Prodotti per la pulizia e materiale di consumo.</span></button></div>`;
   $('#inventoryView').querySelectorAll('[data-view]').forEach(b=>b.onclick=()=>{view=b.dataset.view;render()});
 }
 function inventoryListHTML(category){
-  const rows=inventoryItems.filter(it=>it.category===category).map(it=>`<tr><td>${escape(it.name)}</td><td>${it.quantity}</td><td>${it.unit_cost!=null?'€ '+Number(it.unit_cost).toFixed(2):'—'}</td><td><button class="secondary" onclick="editInventoryItem('${it.id}','${category}')">Modifica</button></td></tr>`).join('');
-  return `<div class="table-wrap"><table><thead><tr><th>Articolo</th><th>Quantità</th><th>Costo unitario</th><th></th></tr></thead><tbody>${rows||'<tr><td colspan="4" class="empty">Nessun articolo.</td></tr>'}</tbody></table></div>`;
+  const rows=inventoryItems.filter(it=>it.category===category).map(it=>`<tr><td>${escape(it.name)}</td><td>${it.quantity}</td><td>${it.unit_cost!=null?'€ '+Number(it.unit_cost).toFixed(2):'—'}</td><td>${escape(it.notes||'—')}</td><td><button class="secondary" onclick="editInventoryItem('${it.id}','${category}')">Modifica</button></td></tr>`).join('');
+  return `<div class="table-wrap"><table><thead><tr><th>Articolo</th><th>Quantità</th><th>Costo unitario</th><th>Note</th><th></th></tr></thead><tbody>${rows||'<tr><td colspan="5" class="empty">Nessun articolo.</td></tr>'}</tbody></table></div>`;
 }
-function renderInventoryFood(){
-  $('#inventoryFoodView').innerHTML=`<div class="top"><div><h1>Beni alimentari</h1><p class="subtitle">Scorte alimentari e costi unitari.</p></div><button class="primary" id="newFoodItem">+ Nuovo articolo</button></div><section class="card">${inventoryListHTML('alimentari')}</section>`;
-  $('#newFoodItem').onclick=()=>inventoryForm({},'alimentari');
+const inventoryCategoryMeta={
+  alimentari:{viewId:'inventoryFoodView',title:'Beni alimentari',subtitle:'Scorte alimentari e costi unitari.'},
+  attrezzature:{viewId:'inventoryEquipmentView',title:'Attrezzature',subtitle:'Dotazioni e costi unitari.'},
+  vestiario:{viewId:'inventoryClothingView',title:'Vestiario',subtitle:'Uniformi, borse e capi di abbigliamento.'},
+  consumo:{viewId:'inventoryConsumablesView',title:'Materiale di consumo',subtitle:'Prodotti per la pulizia e materiale di consumo.'}
+};
+function renderInventoryCategory(category){
+  const meta=inventoryCategoryMeta[category];
+  $('#'+meta.viewId).innerHTML=`<div class="top"><div><h1>${meta.title}</h1><p class="subtitle">${meta.subtitle}</p></div><button class="primary" id="newItem">+ Nuovo articolo</button></div><section class="card">${inventoryListHTML(category)}</section>`;
+  $('#newItem').onclick=()=>inventoryForm({},category);
 }
-function renderInventoryEquipment(){
-  $('#inventoryEquipmentView').innerHTML=`<div class="top"><div><h1>Attrezzature</h1><p class="subtitle">Dotazioni e costi unitari.</p></div><button class="primary" id="newEquipmentItem">+ Nuovo articolo</button></div><section class="card">${inventoryListHTML('attrezzature')}</section>`;
-  $('#newEquipmentItem').onclick=()=>inventoryForm({},'attrezzature');
-}
+function renderInventoryFood(){renderInventoryCategory('alimentari')}
+function renderInventoryEquipment(){renderInventoryCategory('attrezzature')}
+function renderInventoryClothing(){renderInventoryCategory('vestiario')}
+function renderInventoryConsumables(){renderInventoryCategory('consumo')}
 window.editInventoryItem=(id,category)=>inventoryForm(inventoryItems.find(i=>i.id===id),category);
 function inventoryForm(it={},category){
-  const viewId=category==='alimentari'?'inventoryFoodView':'inventoryEquipmentView';
-  const backRender=category==='alimentari'?renderInventoryFood:renderInventoryEquipment;
-  $('#'+viewId).innerHTML=`<div class="top"><div><h1>${it.id?'Modifica':'Nuovo'} articolo</h1></div></div><form class="card" id="itemForm"><div class="form-grid"><label>Nome<input name="name" required value="${escape(it.name||'')}"></label><label>Quantità<input name="quantity" type="number" step="1" min="0" required value="${it.quantity??0}"></label><label>Costo unitario (€)<input name="unit_cost" type="number" step="0.01" min="0" value="${it.unit_cost??''}"></label></div><div class="actions" style="margin-top:20px"><button class="primary">Salva</button><button type="button" class="secondary" id="cancelItem">Annulla</button>${it.id?'<button type="button" class="danger" id="deleteItem">Elimina</button>':''}</div></form>`;
+  const meta=inventoryCategoryMeta[category];
+  const backRender=()=>renderInventoryCategory(category);
+  $('#'+meta.viewId).innerHTML=`<div class="top"><div><h1>${it.id?'Modifica':'Nuovo'} articolo</h1></div></div><form class="card" id="itemForm"><div class="form-grid"><label>Nome<input name="name" required value="${escape(it.name||'')}"></label><label>Quantità<input name="quantity" type="number" step="1" min="0" required value="${it.quantity??0}"></label><label>Costo unitario (€)<input name="unit_cost" type="number" step="0.01" min="0" value="${it.unit_cost??''}"></label><label class="span-2">Note<input name="notes" value="${escape(it.notes||'')}"></label></div><div class="actions" style="margin-top:20px"><button class="primary">Salva</button><button type="button" class="secondary" id="cancelItem">Annulla</button>${it.id?'<button type="button" class="danger" id="deleteItem">Elimina</button>':''}</div></form>`;
   $('#cancelItem').onclick=backRender;
   $('#itemForm').onsubmit=async e=>{
     e.preventDefault();
     const data=Object.fromEntries(new FormData(e.target));
-    data.quantity=Number(data.quantity); data.unit_cost=data.unit_cost===''?null:Number(data.unit_cost);
+    data.quantity=Number(data.quantity); data.unit_cost=data.unit_cost===''?null:Number(data.unit_cost); data.notes=data.notes||null;
     if(!it.id) data.category=category;
     const r=it.id?await db.from('inventory_items').update(data).eq('id',it.id):await db.from('inventory_items').insert(data);
     if(r.error) return flash(r.error.message,true);
