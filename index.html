@@ -117,7 +117,7 @@ window.showMember=id=>{
   const m=members.find(x=>x.id===id); if(!m) return;
   detailMemberId=id;
   const photo=m.photo_url?`<img class="detail-photo" src="${m.photo_url}" alt="">`:`<span class="detail-photo">${initials(m)}</span>`;
-  $('#detailContent').innerHTML=`<div class="detail-head">${photo}<div><h2 style="margin:0 0 4px">${escape(m.first_name)} ${escape(m.last_name)}</h2><span class="grade-badge">${m.grades?.image_url?`<img class="grade-thumb" src="${m.grades.image_url}" alt="">`:''}${escape(m.grades?.name||'—')}</span></div></div><div class="detail-list"><div><span>Data di nascita</span>${italianDate(m.birth_date)}</div><div><span>Data di arrivo</span>${italianDate(m.arrival_date)}</div><div><span>Permanenza in Fondazione</span>${duration(m.arrival_date)}</div><div><span>Strutture di residenza</span>${(m.member_structures||[]).map(x=>escape(x.structures?.name)).join(', ')||'—'}</div><div><span>Email</span>${escape(m.email)}</div><div><span>Numero di telefono</span>${escape(m.phone||'—')}</div></div>`;
+  $('#detailContent').innerHTML=`<div class="detail-head">${photo}<div><h2 style="margin:0 0 4px">${escape(m.first_name)} ${escape(m.last_name)}</h2><span class="grade-badge">${m.grades?.image_url?`<img class="grade-thumb" src="${m.grades.image_url}" alt="">`:''}${escape(m.grades?.name||'—')}</span></div></div><div class="detail-list"><div><span>Data di nascita</span>${italianDate(m.birth_date)}</div><div><span>Data di arrivo</span>${italianDate(m.arrival_date)}</div><div><span>Permanenza in Fondazione</span>${duration(m.arrival_date)}</div><div><span>Strutture di residenza</span>${(m.member_structures||[]).map(x=>escape(x.structures?.name)).join(', ')||'—'}</div><div><span>Email</span>${escape(m.email)}</div><div><span>Numero di telefono</span>${escape(m.phone||'—')}</div></div><div class="actions" style="margin-top:16px">${m.id_card_path?`<button class="secondary" type="button" onclick="openMemberDocument('${m.id_card_path}')">Apri carta d'identità</button>`:''}${m.acceptance_letter_path?`<button class="secondary" type="button" onclick="openMemberDocument('${m.acceptance_letter_path}')">Apri lettera di accettazione</button>`:''}</div>`;
   $('#detailDialog').showModal();
 };
 $('#closeDetail').onclick=()=>$('#detailDialog').close();
@@ -126,12 +126,14 @@ $('#editFromDetail').onclick=()=>{$('#detailDialog').close();editMember(detailMe
 
 function memberForm(m={}){
   const selected=(m.member_structures||[]).map(x=>x.structures?.id);
-  $('#membersView').innerHTML=`<div class="top"><div><h1>${m.id?'Modifica':'Nuova'} anagrafica</h1><p class="subtitle">Le modifiche vengono salvate per tutti gli utenti.</p></div></div><form class="card" id="memberForm"><div class="form-grid"><label>Nome<input name="first_name" required value="${escape(m.first_name||'')}"></label><label>Cognome<input name="last_name" required value="${escape(m.last_name||'')}"></label><label>Email<input name="email" type="email" required value="${escape(m.email||'')}"></label><label>Telefono<input name="phone" value="${escape(m.phone||'')}"></label><label>Data di nascita<input name="birth_date" type="date" value="${escape(m.birth_date||'')}"></label><label>Data di arrivo<input name="arrival_date" type="date" value="${escape(m.arrival_date||'')}"></label><label>Grado<select name="grade_id"><option value="">—</option>${grades.map(g=>`<option value="${g.id}" ${m.grade_id===g.id?'selected':''}>${escape(g.name)}</option>`).join('')}</select></label><label>Foto<input name="photoFile" type="file" accept="image/*"></label><div class="span-2"><b>Case di riferimento</b>${checkList('memberStructures',structures,selected)}</div></div><div class="actions" style="margin-top:20px"><button class="primary">Salva</button><button type="button" class="secondary" id="cancelMember">Annulla</button>${m.id?'<button type="button" class="danger" id="deleteMember">Elimina</button>':''}</div></form>`;
+  $('#membersView').innerHTML=`<div class="top"><div><h1>${m.id?'Modifica':'Nuova'} anagrafica</h1><p class="subtitle">Le modifiche vengono salvate per tutti gli utenti.</p></div></div><form class="card" id="memberForm"><div class="form-grid"><label>Nome<input name="first_name" required value="${escape(m.first_name||'')}"></label><label>Cognome<input name="last_name" required value="${escape(m.last_name||'')}"></label><label>Email<input name="email" type="email" required value="${escape(m.email||'')}"></label><label>Telefono<input name="phone" value="${escape(m.phone||'')}"></label><label>Data di nascita<input name="birth_date" type="date" value="${escape(m.birth_date||'')}"></label><label>Data di arrivo<input name="arrival_date" type="date" value="${escape(m.arrival_date||'')}"></label><label>Grado<select name="grade_id"><option value="">—</option>${grades.map(g=>`<option value="${g.id}" ${m.grade_id===g.id?'selected':''}>${escape(g.name)}</option>`).join('')}</select></label><label>Foto<input name="photoFile" type="file" accept="image/*"></label><label>Carta d'identità<input name="idCardFile" type="file" accept="image/*,application/pdf"></label><label class="span-2">Lettera di accettazione al percorso<input name="acceptanceLetterFile" type="file" accept="image/*,application/pdf"></label><div class="span-2"><b>Case di riferimento</b>${checkList('memberStructures',structures,selected)}</div></div><div class="actions" style="margin-top:20px"><button class="primary">Salva</button><button type="button" class="secondary" id="cancelMember">Annulla</button>${m.id?'<button type="button" class="danger" id="deleteMember">Elimina</button>':''}</div></form>`;
   $('#cancelMember').onclick=renderMembers;
   $('#memberForm').onsubmit=async e=>{
     e.preventDefault();
     const form=e.target, data=Object.fromEntries(new FormData(form));
     const photoFile=form.photoFile.files[0]; delete data.photoFile;
+    const idCardFile=form.idCardFile.files[0]; delete data.idCardFile;
+    const acceptanceLetterFile=form.acceptanceLetterFile.files[0]; delete data.acceptanceLetterFile;
     const ids=picked('memberStructures');
     if(!ids.length) return flash('Seleziona almeno una casa.',true);
     if(!data.grade_id) delete data.grade_id;
@@ -145,6 +147,20 @@ function memberForm(m={}){
       const {data:pub}=db.storage.from('member-photos').getPublicUrl(path);
       const ph=await db.from('members').update({photo_url:pub.publicUrl}).eq('id',id);
       if(ph.error) return flash(ph.error.message,true);
+    }
+    if(idCardFile){
+      const path=`${id}/id-card-${Date.now()}-${idCardFile.name}`;
+      const up=await db.storage.from('member-documents').upload(path,idCardFile,{upsert:true});
+      if(up.error) return flash(up.error.message,true);
+      const r=await db.from('members').update({id_card_path:path}).eq('id',id);
+      if(r.error) return flash(r.error.message,true);
+    }
+    if(acceptanceLetterFile){
+      const path=`${id}/acceptance-letter-${Date.now()}-${acceptanceLetterFile.name}`;
+      const up=await db.storage.from('member-documents').upload(path,acceptanceLetterFile,{upsert:true});
+      if(up.error) return flash(up.error.message,true);
+      const r=await db.from('members').update({acceptance_letter_path:path}).eq('id',id);
+      if(r.error) return flash(r.error.message,true);
     }
     const del=await db.from('member_structures').delete().eq('member_id',id);
     if(del.error) return flash(del.error.message,true);
@@ -247,6 +263,11 @@ function renderNotifications(){
   };
 }
 
+window.openMemberDocument=async path=>{
+  const r=await db.storage.from('member-documents').createSignedUrl(path,3600);
+  if(r.error) return flash(r.error.message,true);
+  window.open(r.data.signedUrl,'_blank');
+};
 window.openNotificationPdf=async path=>{
   const r=await db.storage.from('notification-pdfs').createSignedUrl(path,3600);
   if(r.error) return flash(r.error.message,true);
