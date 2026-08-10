@@ -21,7 +21,7 @@ dialog{border:0;border-radius:14px;padding:0;width:min(560px,calc(100vw - 28px))
 const SUPABASE_URL='https://xiqihzndgvhmaygsrcdh.supabase.co';
 const SUPABASE_KEY='sb_publishable_AeGBs64qTcLzvZppepy8qg_7YOdivrE';
 const db=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
-const $=s=>document.querySelector(s); let structures=[],grades=[],members=[],groups=[],notifications=[],inventoryItems=[],itemRequests=[],assignmentRules=[],view='menu',inventoryStructureId=null,currentProfileMemberId=null;
+const $=s=>document.querySelector(s); let structures=[],grades=[],members=[],groups=[],notifications=[],inventoryItems=[],itemRequests=[],assignmentRules=[],inventoryMovements=[],view='menu',inventoryStructureId=null,currentProfileMemberId=null;
 const escape=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const initials=m=>((m.first_name||'?')[0]+(m.last_name||'?')[0]).toUpperCase();
 const italianDate=d=>d?new Date(d+'T00:00:00').toLocaleDateString('it-IT'):'—';
@@ -29,7 +29,7 @@ function duration(date){if(!date) return '—';const start=new Date(date+'T00:00
 function flash(message,error=false){$('#status').innerHTML=`<div class="notice ${error?'':'ok'}">${escape(message)}</div>`;setTimeout(()=>$('#status').innerHTML='',4500)}
 
 async function load(){
-  const [s,g,m,gr,nt,inv,req,rules]=await Promise.all([
+  const [s,g,m,gr,nt,inv,req,rules,mov]=await Promise.all([
     db.from('structures').select('*').order('name'),
     db.from('grades').select('*').order('name'),
     db.from('members').select('*,grades(name,image_url),member_structures(structures(id,name))').order('last_name'),
@@ -37,10 +37,11 @@ async function load(){
     db.from('notifications').select('*,notification_recipients(member_id)').order('created_at',{ascending:false}),
     db.from('inventory_items').select('*').order('name'),
     db.from('item_requests').select('*,members(first_name,last_name)').order('created_at',{ascending:false}),
-    db.from('assignment_rules').select('*').order('item_name')
+    db.from('assignment_rules').select('*').order('item_name'),
+    db.from('inventory_movements').select('*').order('created_at',{ascending:false})
   ]);
-  for(const r of[s,g,m,gr,nt,inv,req,rules]) if(r.error) throw r.error;
-  structures=s.data; grades=g.data; members=m.data; groups=gr.data; notifications=nt.data; inventoryItems=inv.data; itemRequests=req.data; assignmentRules=rules.data;
+  for(const r of[s,g,m,gr,nt,inv,req,rules,mov]) if(r.error) throw r.error;
+  structures=s.data; grades=g.data; members=m.data; groups=gr.data; notifications=nt.data; inventoryItems=inv.data; itemRequests=req.data; assignmentRules=rules.data; inventoryMovements=mov.data;
   render();
 }
 
@@ -156,8 +157,14 @@ function evaluateRequest(memberId,itemName,quantity){
   return {ok:true};
 }
 function renderRequests(){
-  const rows=itemRequests.map(r=>`<tr><td>${r.members?escape(r.members.first_name+' '+r.members.last_name):'—'}</td><td>${escape(r.item_name)}</td><td>${r.quantity}</td><td>${new Date(r.created_at).toLocaleString('it-IT')}</td><td>${requestStatusLabel[r.status]||r.status}</td><td>${r.status==='pending'?`<button class="secondary" onclick="decideRequest('${r.id}','approved')">Approva</button> <button class="danger" onclick="decideRequest('${r.id}','rejected')">Rifiuta</button>`:escape(r.reject_reason||'')}</td></tr>`).join('');
-  $('#requestsView').innerHTML=`<div class="top"><div><h1>Richieste</h1><p class="subtitle">Storico delle richieste di beni e approvazioni.</p></div></div><section class="card"><div class="table-wrap"><table><thead><tr><th>Membro</th><th>Articolo</th><th>Quantità</th><th>Data</th><th>Stato</th><th></th></tr></thead><tbody>${rows||'<tr><td colspan="6" class="empty">Nessuna richiesta.</td></tr>'}</tbody></table></div></section>`;
+  const categoryLabel=key=>inventoryCategoryMeta[key]?.title||key||'—';
+  const requestRows=itemRequests.map(r=>{
+    const category=inventoryItems.find(it=>it.id===r.inventory_item_id)?.category;
+    return {date:r.created_at,html:`<tr><td>Richiesta</td><td>${r.members?escape(r.members.first_name+' '+r.members.last_name):'—'}</td><td>${escape(r.item_name)}</td><td>${categoryLabel(category)}</td><td>-${r.quantity}</td><td>${new Date(r.created_at).toLocaleString('it-IT')}</td><td>${requestStatusLabel[r.status]||r.status}</td><td>${r.status==='pending'?`<button class="secondary" onclick="decideRequest('${r.id}','approved')">Approva</button> <button class="danger" onclick="decideRequest('${r.id}','rejected')">Rifiuta</button>`:escape(r.reject_reason||'')}</td></tr>`};
+  });
+  const movementRows=inventoryMovements.map(m=>({date:m.created_at,html:`<tr><td>Aggiunta</td><td>Amministratore</td><td>${escape(m.item_label)}</td><td>${categoryLabel(m.category)}</td><td>+${m.quantity}</td><td>${new Date(m.created_at).toLocaleString('it-IT')}</td><td>—</td><td></td></tr>`}));
+  const rows=[...requestRows,...movementRows].sort((a,b)=>new Date(b.date)-new Date(a.date)).map(r=>r.html).join('');
+  $('#requestsView').innerHTML=`<div class="top"><div><h1>Richieste</h1><p class="subtitle">Storico delle richieste di beni, approvazioni e aggiunte al magazzino.</p></div></div><section class="card"><div class="table-wrap"><table><thead><tr><th>Tipo</th><th>Membro</th><th>Articolo</th><th>Inventario</th><th>Quantità</th><th>Data</th><th>Stato</th><th></th></tr></thead><tbody>${rows||'<tr><td colspan="8" class="empty">Nessun movimento.</td></tr>'}</tbody></table></div></section>`;
 }
 async function submitItemRequest(memberId,itemId,quantity){
   if(!itemId) return flash('Seleziona un articolo disponibile.',true);
@@ -243,9 +250,16 @@ function inventoryForm(it={},category){
     const data=Object.fromEntries(new FormData(e.target));
     data.quantity=Number(data.quantity); data.unit_cost=data.unit_cost===''?null:Number(data.unit_cost); data.notes=data.notes||null;
     data.variant=showVariant?(data.variant||null):null;
+    const previousQuantity=it.id?Number(it.quantity):0;
     if(!it.id){ data.category=category; data.structure_id=inventoryStructureId; }
-    const r=it.id?await db.from('inventory_items').update(data).eq('id',it.id):await db.from('inventory_items').insert(data);
+    const r=it.id?await db.from('inventory_items').update(data).eq('id',it.id).select().single():await db.from('inventory_items').insert(data).select().single();
     if(r.error) return flash(r.error.message,true);
+    const added=data.quantity-previousQuantity;
+    if(added>0){
+      const label=data.name+(data.variant?' — '+data.variant:'');
+      const mv=await db.from('inventory_movements').insert({inventory_item_id:r.data.id,category,item_label:label,quantity:added});
+      if(mv.error) flash(mv.error.message,true);
+    }
     flash('Articolo salvato.'); await load();
   };
   if(it.id) $('#deleteItem').onclick=async()=>{if(confirm('Eliminare questo articolo?')){const r=await db.from('inventory_items').delete().eq('id',it.id);if(r.error) flash(r.error.message,true); else {flash('Articolo eliminato.'); await load();}}};
