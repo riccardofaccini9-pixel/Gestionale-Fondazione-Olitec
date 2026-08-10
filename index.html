@@ -13,7 +13,7 @@ dialog{border:0;border-radius:14px;padding:0;width:min(560px,calc(100vw - 28px))
 @media(max-width:760px){.app{display:block}aside{padding:13px 16px;position:sticky;top:0;z-index:3;flex-direction:row;align-items:center}.brand small{display:none}.brand strong{font-size:1.2rem}nav{display:flex;overflow:auto;flex:1}nav button{white-space:nowrap}.logout{margin:0}main{padding:24px 16px}.top{display:block}.top .primary{margin-top:14px;width:100%}.form-grid,.two{grid-template-columns:1fr}.span-2{grid-column:span 1}}
 </style></head><body>
 <section class="login" id="loginView"><form class="login-card" id="loginForm"><h1>Olitec</h1><p>Accesso alla gestione condivisa.</p><div id="loginError" class="notice hidden"></div><label>Username<input id="username" required autocomplete="username"></label><label>Password<input id="password" type="password" required autocomplete="current-password"></label><button class="primary" type="submit">Accedi</button><p class="footer">Primo accesso: admin / admin</p></form></section>
-<section class="app hidden" id="appView"><aside><div class="brand"><small>Fondazione</small><strong>Olitec</strong></div><nav id="nav"></nav><button class="secondary logout" id="logout">Esci</button></aside><main><div id="status"></div><section id="menuView" class="view"></section><section id="membersView" class="view hidden"></section><section id="structuresView" class="view hidden"></section><section id="gradesView" class="view hidden"></section><section id="groupsView" class="view hidden"></section><section id="notificationsView" class="view hidden"></section><section id="inboxView" class="view hidden"></section><section id="inventoryView" class="view hidden"></section><section id="inventoryFoodView" class="view hidden"></section><section id="inventoryEquipmentView" class="view hidden"></section><section id="inventoryClothingView" class="view hidden"></section><section id="inventoryConsumablesView" class="view hidden"></section></main></section>
+<section class="app hidden" id="appView"><aside><div class="brand"><small>Fondazione</small><strong>Olitec</strong></div><nav id="nav"></nav><button class="secondary logout" id="logout">Esci</button></aside><main><div id="status"></div><section id="menuView" class="view"></section><section id="membersView" class="view hidden"></section><section id="structuresView" class="view hidden"></section><section id="gradesView" class="view hidden"></section><section id="groupsView" class="view hidden"></section><section id="notificationsView" class="view hidden"></section><section id="inboxView" class="view hidden"></section><section id="inventoryView" class="view hidden"></section><section id="inventoryFoodView" class="view hidden"></section><section id="inventoryEquipmentView" class="view hidden"></section><section id="inventoryClothingView" class="view hidden"></section><section id="inventoryConsumablesView" class="view hidden"></section><section id="requestsView" class="view hidden"></section><section id="rulesView" class="view hidden"></section></main></section>
 <dialog id="detailDialog"><div class="modal"><div class="modal-head"><span></span><button class="close" type="button" id="closeDetail" aria-label="Chiudi">×</button></div><div id="detailContent"></div><div class="actions" style="margin-top:16px"><button class="secondary" type="button" id="editFromDetail">Modifica anagrafica</button></div></div></dialog>
 <dialog id="photoDialog"><div class="modal"><div class="modal-head"><h2 id="photoTitle">Foto profilo</h2><button class="close" type="button" id="closePhoto" aria-label="Chiudi">×</button></div><img id="fullPhoto" alt="Foto profilo" style="width:100%;max-height:70vh;object-fit:contain;border-radius:10px"></div></dialog>
 <dialog id="documentDialog" style="width:min(900px,calc(100vw - 28px))"><div class="modal"><div class="modal-head"><h2 id="documentTitle">Documento</h2><button class="close" type="button" id="closeDocument" aria-label="Chiudi">×</button></div><img id="documentImage" alt="Documento" style="width:100%;max-height:75vh;object-fit:contain;border-radius:10px;display:none"><iframe id="documentFrame" style="width:100%;height:75vh;border:0;border-radius:10px" title="Documento"></iframe></div></dialog>
@@ -21,7 +21,7 @@ dialog{border:0;border-radius:14px;padding:0;width:min(560px,calc(100vw - 28px))
 const SUPABASE_URL='https://xiqihzndgvhmaygsrcdh.supabase.co';
 const SUPABASE_KEY='sb_publishable_AeGBs64qTcLzvZppepy8qg_7YOdivrE';
 const db=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
-const $=s=>document.querySelector(s); let structures=[],grades=[],members=[],groups=[],notifications=[],inventoryItems=[],view='menu',inventoryStructureId=null;
+const $=s=>document.querySelector(s); let structures=[],grades=[],members=[],groups=[],notifications=[],inventoryItems=[],itemRequests=[],assignmentRules=[],view='menu',inventoryStructureId=null;
 const escape=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const initials=m=>((m.first_name||'?')[0]+(m.last_name||'?')[0]).toUpperCase();
 const italianDate=d=>d?new Date(d+'T00:00:00').toLocaleDateString('it-IT'):'—';
@@ -29,16 +29,18 @@ function duration(date){if(!date) return '—';const start=new Date(date+'T00:00
 function flash(message,error=false){$('#status').innerHTML=`<div class="notice ${error?'':'ok'}">${escape(message)}</div>`;setTimeout(()=>$('#status').innerHTML='',4500)}
 
 async function load(){
-  const [s,g,m,gr,nt,inv]=await Promise.all([
+  const [s,g,m,gr,nt,inv,req,rules]=await Promise.all([
     db.from('structures').select('*').order('name'),
     db.from('grades').select('*').order('name'),
     db.from('members').select('*,grades(name,image_url),member_structures(structures(id,name))').order('last_name'),
     db.from('member_groups').select('*,group_members(member_id)').order('name'),
     db.from('notifications').select('*,notification_recipients(member_id)').order('created_at',{ascending:false}),
-    db.from('inventory_items').select('*').order('name')
+    db.from('inventory_items').select('*').order('name'),
+    db.from('item_requests').select('*,members(first_name,last_name)').order('created_at',{ascending:false}),
+    db.from('assignment_rules').select('*').order('item_name')
   ]);
-  for(const r of[s,g,m,gr,nt,inv]) if(r.error) throw r.error;
-  structures=s.data; grades=g.data; members=m.data; groups=gr.data; notifications=nt.data; inventoryItems=inv.data;
+  for(const r of[s,g,m,gr,nt,inv,req,rules]) if(r.error) throw r.error;
+  structures=s.data; grades=g.data; members=m.data; groups=gr.data; notifications=nt.data; inventoryItems=inv.data; itemRequests=req.data; assignmentRules=rules.data;
   render();
 }
 
@@ -50,11 +52,13 @@ const navTree={
   notifications:[['members','Anagrafiche'],['groups','Crea gruppi']],
   groups:[['notifications','Invia notifica']],
   inbox:[['members','Anagrafiche']],
-  inventory:[['menu','Menu'],['inventoryFood','Beni alimentari'],['inventoryEquipment','Attrezzature'],['inventoryClothing','Vestiario'],['inventoryConsumables','Materiale di consumo']],
+  inventory:[['menu','Menu'],['inventoryFood','Beni alimentari'],['inventoryEquipment','Attrezzature'],['inventoryClothing','Vestiario'],['inventoryConsumables','Materiale di consumo'],['requests','Richieste']],
   inventoryFood:[['inventory','Inventario']],
   inventoryEquipment:[['inventory','Inventario']],
   inventoryClothing:[['inventory','Inventario']],
-  inventoryConsumables:[['inventory','Inventario']]
+  inventoryConsumables:[['inventory','Inventario']],
+  requests:[['inventory','Inventario'],['rules','Regole di assegnazione']],
+  rules:[['requests','Richieste']]
 };
 function render(){
   const entries=navTree[view]||[];
@@ -62,7 +66,7 @@ function render(){
   $('#nav').querySelectorAll('button').forEach(b=>b.onclick=()=>{view=b.dataset.view;render()});
   document.querySelectorAll('.view').forEach(x=>x.classList.add('hidden'));
   $('#'+view+'View').classList.remove('hidden');
-  ({menu:renderMenu,members:renderMembers,structures:renderStructures,grades:renderGrades,groups:renderGroups,notifications:renderNotifications,inbox:renderInbox,inventory:renderInventory,inventoryFood:renderInventoryFood,inventoryEquipment:renderInventoryEquipment,inventoryClothing:renderInventoryClothing,inventoryConsumables:renderInventoryConsumables})[view]();
+  ({menu:renderMenu,members:renderMembers,structures:renderStructures,grades:renderGrades,groups:renderGroups,notifications:renderNotifications,inbox:renderInbox,inventory:renderInventory,inventoryFood:renderInventoryFood,inventoryEquipment:renderInventoryEquipment,inventoryClothing:renderInventoryClothing,inventoryConsumables:renderInventoryConsumables,requests:renderRequests,rules:renderRules})[view]();
 }
 
 function renderMenu(){
@@ -79,7 +83,7 @@ function bindStructureSelector(viewId,rerender){
 }
 function renderInventory(){
   if(!inventoryStructureId && structures.length) inventoryStructureId=structures[0].id;
-  $('#inventoryView').innerHTML=`<div class="top"><div><h1>Inventario</h1><p class="subtitle">Scegli quale inventario consultare.</p></div></div>${structureSelectorHTML()}<div class="menu-grid"><button class="menu-card" data-view="inventoryFood"><b>Beni alimentari</b><span>Scorte alimentari.</span></button><button class="menu-card" data-view="inventoryEquipment"><b>Attrezzature</b><span>Strumenti, dotazioni e materiali durevoli.</span></button><button class="menu-card" data-view="inventoryClothing"><b>Vestiario</b><span>Uniformi, borse e capi di abbigliamento.</span></button><button class="menu-card" data-view="inventoryConsumables"><b>Materiale di consumo</b><span>Prodotti per la pulizia e materiale di consumo.</span></button></div>`;
+  $('#inventoryView').innerHTML=`<div class="top"><div><h1>Inventario</h1><p class="subtitle">Scegli quale inventario consultare.</p></div></div>${structureSelectorHTML()}<div class="menu-grid"><button class="menu-card" data-view="inventoryFood"><b>Beni alimentari</b><span>Scorte alimentari.</span></button><button class="menu-card" data-view="inventoryEquipment"><b>Attrezzature</b><span>Strumenti, dotazioni e materiali durevoli.</span></button><button class="menu-card" data-view="inventoryClothing"><b>Vestiario</b><span>Uniformi, borse e capi di abbigliamento.</span></button><button class="menu-card" data-view="inventoryConsumables"><b>Materiale di consumo</b><span>Prodotti per la pulizia e materiale di consumo.</span></button><button class="menu-card" data-view="requests"><b>Richieste</b><span>Storico delle richieste di beni e approvazioni.</span></button></div>`;
   bindStructureSelector('inventoryView',renderInventory);
   $('#inventoryView').querySelectorAll('[data-view]').forEach(b=>b.onclick=()=>{view=b.dataset.view;render()});
 }
@@ -132,6 +136,53 @@ function renderInventoryFood(){renderInventoryCategory('alimentari')}
 function renderInventoryEquipment(){renderInventoryCategory('attrezzature')}
 function renderInventoryClothing(){renderInventoryCategory('vestiario')}
 function renderInventoryConsumables(){renderInventoryCategory('consumo')}
+
+const requestStatusLabel={pending:'In attesa',approved:'Approvata',rejected:'Rifiutata',auto_rejected:'Rifiutata automaticamente'};
+function evaluateRequest(memberId,itemName,quantity){
+  const rule=assignmentRules.find(r=>r.item_name.trim().toLowerCase()===itemName.trim().toLowerCase());
+  if(!rule) return {ok:true};
+  if(quantity>rule.max_quantity) return {ok:false,reason:`quantità massima consentita: ${rule.max_quantity}`};
+  if(rule.min_period_days>0){
+    const cutoff=Date.now()-rule.min_period_days*86400000;
+    const recent=itemRequests.find(r=>r.member_id===memberId && r.item_name.trim().toLowerCase()===itemName.trim().toLowerCase() && r.status!=='rejected' && r.status!=='auto_rejected' && new Date(r.created_at).getTime()>cutoff);
+    if(recent) return {ok:false,reason:`periodo minimo tra le richieste non rispettato (${rule.min_period_days} giorni)`};
+  }
+  return {ok:true};
+}
+function renderRequests(){
+  const rows=itemRequests.map(r=>`<tr><td>${r.members?escape(r.members.first_name+' '+r.members.last_name):'—'}</td><td>${escape(r.item_name)}</td><td>${r.quantity}</td><td>${new Date(r.created_at).toLocaleString('it-IT')}</td><td>${requestStatusLabel[r.status]||r.status}</td><td>${r.status==='pending'?`<button class="secondary" onclick="decideRequest('${r.id}','approved')">Approva</button> <button class="danger" onclick="decideRequest('${r.id}','rejected')">Rifiuta</button>`:escape(r.reject_reason||'')}</td></tr>`).join('');
+  $('#requestsView').innerHTML=`<div class="top"><div><h1>Richieste</h1><p class="subtitle">Storico delle richieste di beni e approvazioni.</p></div></div><section class="card"><form id="requestForm"><div class="form-grid"><label>Membro<select name="member_id" required>${members.map(m=>`<option value="${m.id}">${escape(m.first_name)} ${escape(m.last_name)}</option>`).join('')}</select></label><label>Articolo<input name="item_name" required placeholder="Es. Carta igienica"></label><label>Quantità<input name="quantity" type="number" min="1" step="1" required value="1"></label></div><div class="actions" style="margin-top:16px"><button class="primary">Invia richiesta</button></div></form></section><section class="card"><div class="table-wrap"><table><thead><tr><th>Membro</th><th>Articolo</th><th>Quantità</th><th>Data</th><th>Stato</th><th></th></tr></thead><tbody>${rows||'<tr><td colspan="6" class="empty">Nessuna richiesta.</td></tr>'}</tbody></table></div></section>`;
+  $('#requestForm').onsubmit=async e=>{
+    e.preventDefault();
+    const data=Object.fromEntries(new FormData(e.target));
+    data.quantity=Number(data.quantity); data.item_name=data.item_name.trim();
+    const check=evaluateRequest(data.member_id,data.item_name,data.quantity);
+    const payload={member_id:data.member_id,item_name:data.item_name,quantity:data.quantity,status:check.ok?'pending':'auto_rejected',reject_reason:check.ok?null:check.reason};
+    const r=await db.from('item_requests').insert(payload);
+    if(r.error) return flash(r.error.message,true);
+    flash(check.ok?'Richiesta inviata, in attesa di approvazione.':'Richiesta rifiutata automaticamente: '+check.reason,!check.ok);
+    await load();
+  };
+}
+window.decideRequest=async(id,status)=>{
+  const u=(await db.auth.getUser()).data.user;
+  const r=await db.from('item_requests').update({status,decided_at:new Date().toISOString(),decided_by:u.id}).eq('id',id);
+  if(r.error) return flash(r.error.message,true);
+  flash(status==='approved'?'Richiesta approvata.':'Richiesta rifiutata.');
+  await load();
+};
+function renderRules(){
+  $('#rulesView').innerHTML=`<div class="top"><div><h1>Regole di assegnazione</h1><p class="subtitle">Limiti di quantità e frequenza per le richieste di beni.</p></div></div><section class="card"><form id="ruleForm"><div class="form-grid"><label>Nome articolo<input name="item_name" required></label><label>Quantità concessa<input name="max_quantity" type="number" min="1" step="1" required></label><label>Periodo minimo tra le richieste (giorni)<input name="min_period_days" type="number" min="0" step="1" required value="0"></label></div><div class="actions" style="margin-top:16px"><button class="primary">Aggiungi regola</button></div></form></section><section class="card"><div class="list">${assignmentRules.map(r=>`<div class="item"><span><b>${escape(r.item_name)}</b><br><small>Massimo ${r.max_quantity} · ogni ${r.min_period_days} giorni</small></span><button class="danger" onclick="removeRule('${r.id}')">Rimuovi</button></div>`).join('')||'<p class="empty">Nessuna regola configurata.</p>'}</div></section>`;
+  $('#ruleForm').onsubmit=async e=>{
+    e.preventDefault();
+    const data=Object.fromEntries(new FormData(e.target));
+    data.max_quantity=Number(data.max_quantity); data.min_period_days=Number(data.min_period_days);
+    const r=await db.from('assignment_rules').insert(data);
+    if(r.error) return flash(r.error.message,true);
+    flash('Regola salvata.'); await load();
+  };
+}
+window.removeRule=async id=>{if(confirm('Rimuovere questa regola?')){const r=await db.from('assignment_rules').delete().eq('id',id);if(r.error) flash(r.error.message,true); else await load();}};
 window.editInventoryItem=(id,category)=>inventoryForm(inventoryItems.find(i=>i.id===id),category);
 function inventoryForm(it={},category){
   const meta=inventoryCategoryMeta[category];
