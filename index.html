@@ -234,12 +234,14 @@ window.editInventoryItem=(id,category)=>inventoryForm(inventoryItems.find(i=>i.i
 function inventoryForm(it={},category){
   const meta=inventoryCategoryMeta[category];
   const backRender=()=>renderInventoryCategory(category);
-  $('#'+meta.viewId).innerHTML=`<div class="top"><div><h1>${it.id?'Modifica':'Nuovo'} articolo</h1></div></div><form class="card" id="itemForm"><div class="form-grid"><label>Nome<input name="name" required value="${escape(it.name||'')}"></label><label>Taglia<input name="variant" value="${escape(it.variant||'')}"></label><label>Quantità<input name="quantity" type="number" step="1" min="0" required value="${it.quantity??0}"></label><label>Costo unitario (€)<input name="unit_cost" type="number" step="0.01" min="0" value="${it.unit_cost??''}"></label><label class="span-2">Note<input name="notes" value="${escape(it.notes||'')}"></label></div><div class="actions" style="margin-top:20px"><button class="primary">Salva</button><button type="button" class="secondary" id="cancelItem">Annulla</button>${it.id?'<button type="button" class="danger" id="deleteItem">Elimina</button>':''}</div></form>`;
+  const showVariant=category==='vestiario';
+  $('#'+meta.viewId).innerHTML=`<div class="top"><div><h1>${it.id?'Modifica':'Nuovo'} articolo</h1></div></div><form class="card" id="itemForm"><div class="form-grid"><label>Nome<input name="name" required value="${escape(it.name||'')}"></label>${showVariant?`<label>Taglia<input name="variant" value="${escape(it.variant||'')}"></label>`:''}<label>Quantità<input name="quantity" type="number" step="1" min="0" required value="${it.quantity??0}"></label><label>Costo unitario (€)<input name="unit_cost" type="number" step="0.01" min="0" value="${it.unit_cost??''}"></label><label class="span-2">Note<input name="notes" value="${escape(it.notes||'')}"></label></div><div class="actions" style="margin-top:20px"><button class="primary">Salva</button><button type="button" class="secondary" id="cancelItem">Annulla</button>${it.id?'<button type="button" class="danger" id="deleteItem">Elimina</button>':''}</div></form>`;
   $('#cancelItem').onclick=backRender;
   $('#itemForm').onsubmit=async e=>{
     e.preventDefault();
     const data=Object.fromEntries(new FormData(e.target));
-    data.quantity=Number(data.quantity); data.unit_cost=data.unit_cost===''?null:Number(data.unit_cost); data.notes=data.notes||null; data.variant=data.variant||null;
+    data.quantity=Number(data.quantity); data.unit_cost=data.unit_cost===''?null:Number(data.unit_cost); data.notes=data.notes||null;
+    data.variant=showVariant?(data.variant||null):null;
     if(!it.id){ data.category=category; data.structure_id=inventoryStructureId; }
     const r=it.id?await db.from('inventory_items').update(data).eq('id',it.id):await db.from('inventory_items').insert(data);
     if(r.error) return flash(r.error.message,true);
