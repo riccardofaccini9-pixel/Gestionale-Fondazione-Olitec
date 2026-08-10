@@ -205,8 +205,9 @@ function renderProfiloRichieste(){
 window.decideRequest=async(id,status)=>{
   const request=itemRequests.find(r=>r.id===id);
   const u=(await db.auth.getUser()).data.user;
-  const r=await db.from('item_requests').update({status,decided_at:new Date().toISOString(),decided_by:u.id}).eq('id',id);
+  const r=await db.from('item_requests').update({status,decided_at:new Date().toISOString(),decided_by:u.id}).eq('id',id).eq('status','pending').select();
   if(r.error) return flash(r.error.message,true);
+  if(!r.data.length){ flash('Questa richiesta è già stata gestita.',true); await load(); return; }
   if(status==='approved' && request?.inventory_item_id){
     const item=inventoryItems.find(it=>it.id===request.inventory_item_id);
     if(item){
