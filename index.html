@@ -13,7 +13,7 @@ dialog{border:0;border-radius:14px;padding:0;width:min(560px,calc(100vw - 28px))
 @media(max-width:760px){.app{display:block}aside{padding:13px 16px;position:sticky;top:0;z-index:3;flex-direction:row;align-items:center}.brand small{display:none}.brand strong{font-size:1.2rem}nav{display:flex;overflow:auto;flex:1}nav button{white-space:nowrap}.logout{margin:0}main{padding:24px 16px}.top{display:block}.top .primary{margin-top:14px;width:100%}.form-grid,.two{grid-template-columns:1fr}.span-2{grid-column:span 1}}
 </style></head><body>
 <section class="login" id="loginView"><form class="login-card" id="loginForm"><h1>Olitec</h1><p>Accesso alla gestione condivisa.</p><div id="loginError" class="notice hidden"></div><label>Username<input id="username" required autocomplete="username"></label><label>Password<input id="password" type="password" required autocomplete="current-password"></label><button class="primary" type="submit">Accedi</button><p class="footer">Primo accesso: admin / admin</p></form></section>
-<section class="app hidden" id="appView"><aside><div class="brand"><small>Fondazione</small><strong>Olitec</strong></div><nav id="nav"></nav><button class="secondary logout" id="logout">Esci</button></aside><main><div id="status"></div><section id="menuView" class="view"></section><section id="membersView" class="view hidden"></section><section id="structuresView" class="view hidden"></section><section id="gradesView" class="view hidden"></section><section id="groupsView" class="view hidden"></section><section id="notificationsView" class="view hidden"></section><section id="inboxView" class="view hidden"></section><section id="inventoryView" class="view hidden"></section><section id="inventoryFoodView" class="view hidden"></section><section id="inventoryEquipmentView" class="view hidden"></section><section id="inventoryClothingView" class="view hidden"></section><section id="inventoryConsumablesView" class="view hidden"></section><section id="requestsView" class="view hidden"></section><section id="rulesView" class="view hidden"></section></main></section>
+<section class="app hidden" id="appView"><aside><div class="brand"><small>Fondazione</small><strong>Olitec</strong></div><nav id="nav"></nav><button class="secondary logout" id="logout">Esci</button></aside><main><div id="status"></div><section id="menuView" class="view"></section><section id="membersView" class="view hidden"></section><section id="structuresView" class="view hidden"></section><section id="gradesView" class="view hidden"></section><section id="groupsView" class="view hidden"></section><section id="notificationsView" class="view hidden"></section><section id="inboxView" class="view hidden"></section><section id="inventoryView" class="view hidden"></section><section id="inventoryFoodView" class="view hidden"></section><section id="inventoryEquipmentView" class="view hidden"></section><section id="inventoryClothingView" class="view hidden"></section><section id="inventoryConsumablesView" class="view hidden"></section><section id="requestsView" class="view hidden"></section><section id="rulesView" class="view hidden"></section><section id="profiloView" class="view hidden"></section><section id="profiloAnagraficaView" class="view hidden"></section><section id="profiloRichiesteView" class="view hidden"></section></main></section>
 <dialog id="detailDialog"><div class="modal"><div class="modal-head"><span></span><button class="close" type="button" id="closeDetail" aria-label="Chiudi">×</button></div><div id="detailContent"></div><div class="actions" style="margin-top:16px"><button class="secondary" type="button" id="editFromDetail">Modifica anagrafica</button></div></div></dialog>
 <dialog id="photoDialog"><div class="modal"><div class="modal-head"><h2 id="photoTitle">Foto profilo</h2><button class="close" type="button" id="closePhoto" aria-label="Chiudi">×</button></div><img id="fullPhoto" alt="Foto profilo" style="width:100%;max-height:70vh;object-fit:contain;border-radius:10px"></div></dialog>
 <dialog id="documentDialog" style="width:min(900px,calc(100vw - 28px))"><div class="modal"><div class="modal-head"><h2 id="documentTitle">Documento</h2><button class="close" type="button" id="closeDocument" aria-label="Chiudi">×</button></div><img id="documentImage" alt="Documento" style="width:100%;max-height:75vh;object-fit:contain;border-radius:10px;display:none"><iframe id="documentFrame" style="width:100%;height:75vh;border:0;border-radius:10px" title="Documento"></iframe></div></dialog>
@@ -21,7 +21,7 @@ dialog{border:0;border-radius:14px;padding:0;width:min(560px,calc(100vw - 28px))
 const SUPABASE_URL='https://xiqihzndgvhmaygsrcdh.supabase.co';
 const SUPABASE_KEY='sb_publishable_AeGBs64qTcLzvZppepy8qg_7YOdivrE';
 const db=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
-const $=s=>document.querySelector(s); let structures=[],grades=[],members=[],groups=[],notifications=[],inventoryItems=[],itemRequests=[],assignmentRules=[],view='menu',inventoryStructureId=null;
+const $=s=>document.querySelector(s); let structures=[],grades=[],members=[],groups=[],notifications=[],inventoryItems=[],itemRequests=[],assignmentRules=[],view='menu',inventoryStructureId=null,currentProfileMemberId=null;
 const escape=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const initials=m=>((m.first_name||'?')[0]+(m.last_name||'?')[0]).toUpperCase();
 const italianDate=d=>d?new Date(d+'T00:00:00').toLocaleDateString('it-IT'):'—';
@@ -58,7 +58,10 @@ const navTree={
   inventoryClothing:[['inventory','Inventario']],
   inventoryConsumables:[['inventory','Inventario']],
   requests:[['inventory','Inventario'],['rules','Regole di assegnazione']],
-  rules:[['requests','Richieste']]
+  rules:[['requests','Richieste']],
+  profilo:[['menu','Menu'],['profiloAnagrafica','Anagrafica'],['profiloRichieste','Richieste']],
+  profiloAnagrafica:[['profilo','Profilo']],
+  profiloRichieste:[['profilo','Profilo']]
 };
 function render(){
   const entries=navTree[view]||[];
@@ -66,11 +69,14 @@ function render(){
   $('#nav').querySelectorAll('button').forEach(b=>b.onclick=()=>{view=b.dataset.view;render()});
   document.querySelectorAll('.view').forEach(x=>x.classList.add('hidden'));
   $('#'+view+'View').classList.remove('hidden');
-  ({menu:renderMenu,members:renderMembers,structures:renderStructures,grades:renderGrades,groups:renderGroups,notifications:renderNotifications,inbox:renderInbox,inventory:renderInventory,inventoryFood:renderInventoryFood,inventoryEquipment:renderInventoryEquipment,inventoryClothing:renderInventoryClothing,inventoryConsumables:renderInventoryConsumables,requests:renderRequests,rules:renderRules})[view]();
+  ({menu:renderMenu,members:renderMembers,structures:renderStructures,grades:renderGrades,groups:renderGroups,notifications:renderNotifications,inbox:renderInbox,inventory:renderInventory,inventoryFood:renderInventoryFood,inventoryEquipment:renderInventoryEquipment,inventoryClothing:renderInventoryClothing,inventoryConsumables:renderInventoryConsumables,requests:renderRequests,rules:renderRules,profilo:renderProfilo,profiloAnagrafica:renderProfiloAnagrafica,profiloRichieste:renderProfiloRichieste})[view]();
 }
 
 function renderMenu(){
-  $('#menuView').innerHTML=`<div class="top"><div><h1>Menu</h1><p class="subtitle">Gestione della Fondazione Olivetti Tecnologia e Ricerca</p></div></div><div class="menu-grid"><button class="menu-card" data-view="members"><b>Anagrafiche</b><span>Consulta e gestisci le schede di tutti i membri, le strutture e i gradi.</span></button><button class="menu-card" data-view="inventory"><b>Inventario</b><span>Consulta e gestisci gli articoli e i relativi costi unitari.</span></button></div>`;
+  const m=members.find(x=>x.id===currentProfileMemberId);
+  const avatar=m?.photo_url?`<img class="avatar" src="${m.photo_url}" alt="">`:`<span class="avatar">${m?initials(m):'?'}</span>`;
+  $('#menuView').innerHTML=`<div class="top"><div><h1>Menu</h1><p class="subtitle">Gestione della Fondazione Olivetti Tecnologia e Ricerca</p></div><button class="secondary" id="profileBtn" style="display:flex;align-items:center;gap:9px">${avatar}<span>Profilo</span></button></div><div class="menu-grid"><button class="menu-card" data-view="members"><b>Anagrafiche</b><span>Consulta e gestisci le schede di tutti i membri, le strutture e i gradi.</span></button><button class="menu-card" data-view="inventory"><b>Inventario</b><span>Consulta e gestisci gli articoli e i relativi costi unitari.</span></button></div>`;
+  $('#profileBtn').onclick=()=>{view='profilo';render()};
   $('#menuView').querySelectorAll('[data-view]').forEach(b=>b.onclick=()=>{view=b.dataset.view;render()});
 }
 
@@ -151,34 +157,49 @@ function evaluateRequest(memberId,itemName,quantity){
 }
 function renderRequests(){
   const rows=itemRequests.map(r=>`<tr><td>${r.members?escape(r.members.first_name+' '+r.members.last_name):'—'}</td><td>${escape(r.item_name)}</td><td>${r.quantity}</td><td>${new Date(r.created_at).toLocaleString('it-IT')}</td><td>${requestStatusLabel[r.status]||r.status}</td><td>${r.status==='pending'?`<button class="secondary" onclick="decideRequest('${r.id}','approved')">Approva</button> <button class="danger" onclick="decideRequest('${r.id}','rejected')">Rifiuta</button>`:escape(r.reject_reason||'')}</td></tr>`).join('');
-  $('#requestsView').innerHTML=`<div class="top"><div><h1>Richieste</h1><p class="subtitle">Storico delle richieste di beni e approvazioni.</p></div></div><section class="card"><form id="requestForm"><div class="form-grid"><label>Membro<select id="reqMember" required>${members.map(m=>`<option value="${m.id}">${escape(m.first_name)} ${escape(m.last_name)}</option>`).join('')}</select></label><label>Struttura<select id="reqStructure" required>${structures.map(s=>`<option value="${s.id}">${escape(s.name)}</option>`).join('')}</select></label><label>Categoria<select id="reqCategory" required>${Object.entries(inventoryCategoryMeta).map(([key,meta])=>`<option value="${key}">${escape(meta.title)}</option>`).join('')}</select></label><label>Articolo<select id="reqItem" required></select></label><label>Quantità<input id="reqQuantity" type="number" min="1" step="1" required value="1"></label></div><div class="actions" style="margin-top:16px"><button class="primary">Invia richiesta</button></div></form></section><section class="card"><div class="table-wrap"><table><thead><tr><th>Membro</th><th>Articolo</th><th>Quantità</th><th>Data</th><th>Stato</th><th></th></tr></thead><tbody>${rows||'<tr><td colspan="6" class="empty">Nessuna richiesta.</td></tr>'}</tbody></table></div></section>`;
+  $('#requestsView').innerHTML=`<div class="top"><div><h1>Richieste</h1><p class="subtitle">Storico delle richieste di beni e approvazioni.</p></div></div><section class="card"><div class="table-wrap"><table><thead><tr><th>Membro</th><th>Articolo</th><th>Quantità</th><th>Data</th><th>Stato</th><th></th></tr></thead><tbody>${rows||'<tr><td colspan="6" class="empty">Nessuna richiesta.</td></tr>'}</tbody></table></div></section>`;
+}
+async function submitItemRequest(memberId,itemId,quantity){
+  if(!itemId) return flash('Seleziona un articolo disponibile.',true);
+  if(!memberId) return flash('Nessuna anagrafica collegata a questo account.',true);
+  const item=inventoryItems.find(it=>it.id===itemId);
+  const label=item.name+(item.variant?' — '+item.variant:'');
+  const check=evaluateRequest(memberId,item.name,quantity);
+  let status=check.ok?'pending':'auto_rejected', reason=check.ok?null:check.reason;
+  if(status==='pending' && quantity>Number(item.quantity)){ status='auto_rejected'; reason=`quantità non disponibile in magazzino (disponibili: ${item.quantity})`; }
+  const r=await db.from('item_requests').insert({member_id:memberId,item_name:label,inventory_item_id:itemId,quantity,status,reject_reason:reason});
+  if(r.error) return flash(r.error.message,true);
+  flash(status==='pending'?'Richiesta inviata, in attesa di approvazione.':'Richiesta rifiutata automaticamente: '+reason,status!=='pending');
+  await load();
+}
+function renderProfilo(){
+  const m=members.find(x=>x.id===currentProfileMemberId);
+  const avatar=m?.photo_url?`<img class="detail-photo" src="${m.photo_url}" alt="">`:`<span class="detail-photo">${m?initials(m):'?'}</span>`;
+  $('#profiloView').innerHTML=`<div class="top"><div><h1>Profilo</h1><p class="subtitle">${m?escape(m.first_name)+' '+escape(m.last_name):'Account amministratore'}</p></div></div><div class="menu-grid"><button class="menu-card" data-view="profiloAnagrafica"><b>Anagrafica</b><span>La tua scheda personale.</span></button><button class="menu-card" data-view="profiloRichieste"><b>Richieste</b><span>Invia una richiesta di materiale.</span></button></div>`;
+  $('#profiloView').querySelectorAll('[data-view]').forEach(b=>b.onclick=()=>{view=b.dataset.view;render()});
+}
+function renderProfiloAnagrafica(){
+  const m=members.find(x=>x.id===currentProfileMemberId);
+  if(!m){ $('#profiloAnagraficaView').innerHTML=`<div class="top"><div><h1>Anagrafica</h1></div></div><p class="empty">Nessuna anagrafica collegata a questo account.</p>`; return; }
+  $('#profiloAnagraficaView').innerHTML=`<div class="top"><div><h1>Anagrafica</h1><p class="subtitle">La tua scheda personale.</p></div><button class="secondary" id="editProfileMember">Modifica</button></div><section class="card" style="padding:24px">${memberDetailHTML(m)}</section>`;
+  $('#editProfileMember').onclick=()=>{view='members';render();editMember(m.id);};
+}
+function renderProfiloRichieste(){
+  $('#profiloRichiesteView').innerHTML=`<div class="top"><div><h1>Richieste</h1><p class="subtitle">Invia una richiesta di materiale.</p></div></div><section class="card"><form id="profileRequestForm"><div class="form-grid"><label>Struttura<select id="preqStructure" required>${structures.map(s=>`<option value="${s.id}">${escape(s.name)}</option>`).join('')}</select></label><label>Categoria<select id="preqCategory" required>${Object.entries(inventoryCategoryMeta).map(([key,meta])=>`<option value="${key}">${escape(meta.title)}</option>`).join('')}</select></label><label class="span-2">Articolo<select id="preqItem" required></select></label><label>Quantità<input id="preqQuantity" type="number" min="1" step="1" required value="1"></label></div><div class="actions" style="margin-top:16px"><button class="primary">Invia richiesta</button></div></form></section>`;
   const refreshItemOptions=()=>{
-    const structureId=$('#reqStructure').value, category=$('#reqCategory').value;
+    const structureId=$('#preqStructure').value, category=$('#preqCategory').value;
     const options=inventoryItems.filter(it=>it.structure_id===structureId && it.category===category).map(it=>`<option value="${it.id}">${escape(it.name)}${it.variant?' — '+escape(it.variant):''} (disp. ${it.quantity})</option>`).join('');
-    $('#reqItem').innerHTML=options||'<option value="">Nessun articolo disponibile</option>';
+    $('#preqItem').innerHTML=options||'<option value="">Nessun articolo disponibile</option>';
   };
-  const defaultStructureForMember=()=>{
-    const member=members.find(m=>m.id===$('#reqMember').value);
-    const firstStructureId=member?.member_structures?.[0]?.structures?.id;
-    if(firstStructureId) $('#reqStructure').value=firstStructureId;
-  };
-  defaultStructureForMember(); refreshItemOptions();
-  $('#reqMember').onchange=()=>{defaultStructureForMember();refreshItemOptions();};
-  $('#reqStructure').onchange=refreshItemOptions;
-  $('#reqCategory').onchange=refreshItemOptions;
-  $('#requestForm').onsubmit=async e=>{
+  const member=members.find(m=>m.id===currentProfileMemberId);
+  const firstStructureId=member?.member_structures?.[0]?.structures?.id;
+  if(firstStructureId) $('#preqStructure').value=firstStructureId;
+  refreshItemOptions();
+  $('#preqStructure').onchange=refreshItemOptions;
+  $('#preqCategory').onchange=refreshItemOptions;
+  $('#profileRequestForm').onsubmit=e=>{
     e.preventDefault();
-    const memberId=$('#reqMember').value, itemId=$('#reqItem').value, quantity=Number($('#reqQuantity').value);
-    if(!itemId) return flash('Seleziona un articolo disponibile.',true);
-    const item=inventoryItems.find(it=>it.id===itemId);
-    const label=item.name+(item.variant?' — '+item.variant:'');
-    const check=evaluateRequest(memberId,item.name,quantity);
-    let status=check.ok?'pending':'auto_rejected', reason=check.ok?null:check.reason;
-    if(status==='pending' && quantity>Number(item.quantity)){ status='auto_rejected'; reason=`quantità non disponibile in magazzino (disponibili: ${item.quantity})`; }
-    const r=await db.from('item_requests').insert({member_id:memberId,item_name:label,inventory_item_id:itemId,quantity,status,reject_reason:reason});
-    if(r.error) return flash(r.error.message,true);
-    flash(status==='pending'?'Richiesta inviata, in attesa di approvazione.':'Richiesta rifiutata automaticamente: '+reason,status!=='pending');
-    await load();
+    submitItemRequest(currentProfileMemberId,$('#preqItem').value,Number($('#preqQuantity').value));
   };
 }
 window.decideRequest=async(id,status)=>{
@@ -240,11 +261,14 @@ function renderMembers(){
 window.editMember=id=>memberForm(members.find(m=>m.id===id));
 let detailMemberId=null;
 window.showPhoto=id=>{const m=members.find(x=>x.id===id);if(!m?.photo_url) return;$('#photoTitle').textContent=`Foto di ${escape(m.first_name)} ${escape(m.last_name)}`;$('#fullPhoto').src=m.photo_url;$('#photoDialog').showModal();};
+function memberDetailHTML(m){
+  const photo=m.photo_url?`<img class="detail-photo" src="${m.photo_url}" alt="">`:`<span class="detail-photo">${initials(m)}</span>`;
+  return `<div class="detail-head">${photo}<div><h2 style="margin:0 0 4px">${escape(m.first_name)} ${escape(m.last_name)}</h2><span class="grade-badge">${m.grades?.image_url?`<img class="grade-thumb" src="${m.grades.image_url}" alt="">`:''}${escape(m.grades?.name||'—')}</span></div></div><div class="detail-list"><div><span>Data di nascita</span>${italianDate(m.birth_date)}</div><div><span>Data di arrivo</span>${italianDate(m.arrival_date)}</div><div><span>Permanenza in Fondazione</span>${duration(m.arrival_date)}</div><div><span>Strutture di residenza</span>${(m.member_structures||[]).map(x=>escape(x.structures?.name)).join(', ')||'—'}</div><div><span>Email</span>${escape(m.email)}</div><div><span>Numero di telefono</span>${escape(m.phone||'—')}</div></div><div class="actions" style="margin-top:16px">${m.id_card_path?`<button class="secondary" type="button" onclick="openMemberDocument('${m.id_card_path}','Carta d\\'identità')">Apri carta d'identità</button>`:''}${m.acceptance_letter_path?`<button class="secondary" type="button" onclick="openMemberDocument('${m.acceptance_letter_path}','Lettera di accettazione')">Apri lettera di accettazione</button>`:''}</div>`;
+}
 window.showMember=id=>{
   const m=members.find(x=>x.id===id); if(!m) return;
   detailMemberId=id;
-  const photo=m.photo_url?`<img class="detail-photo" src="${m.photo_url}" alt="">`:`<span class="detail-photo">${initials(m)}</span>`;
-  $('#detailContent').innerHTML=`<div class="detail-head">${photo}<div><h2 style="margin:0 0 4px">${escape(m.first_name)} ${escape(m.last_name)}</h2><span class="grade-badge">${m.grades?.image_url?`<img class="grade-thumb" src="${m.grades.image_url}" alt="">`:''}${escape(m.grades?.name||'—')}</span></div></div><div class="detail-list"><div><span>Data di nascita</span>${italianDate(m.birth_date)}</div><div><span>Data di arrivo</span>${italianDate(m.arrival_date)}</div><div><span>Permanenza in Fondazione</span>${duration(m.arrival_date)}</div><div><span>Strutture di residenza</span>${(m.member_structures||[]).map(x=>escape(x.structures?.name)).join(', ')||'—'}</div><div><span>Email</span>${escape(m.email)}</div><div><span>Numero di telefono</span>${escape(m.phone||'—')}</div></div><div class="actions" style="margin-top:16px">${m.id_card_path?`<button class="secondary" type="button" onclick="openMemberDocument('${m.id_card_path}','Carta d\\'identità')">Apri carta d'identità</button>`:''}${m.acceptance_letter_path?`<button class="secondary" type="button" onclick="openMemberDocument('${m.acceptance_letter_path}','Lettera di accettazione')">Apri lettera di accettazione</button>`:''}</div>`;
+  $('#detailContent').innerHTML=memberDetailHTML(m);
   $('#detailDialog').showModal();
 };
 $('#closeDetail').onclick=()=>$('#detailDialog').close();
@@ -425,6 +449,6 @@ function renderInboxList(){
 
 $('#loginForm').onsubmit=async e=>{e.preventDefault();const username=$('#username').value.trim(),email=username.includes('@')?username:`${username}@olitec.local`;const {error}=await db.auth.signInWithPassword({email,password:$('#password').value});if(error){$('#loginError').textContent='Accesso non riuscito: '+error.message;$('#loginError').classList.remove('hidden');return}start()};
 $('#logout').onclick=async()=>{await db.auth.signOut();$('#appView').classList.add('hidden');$('#loginView').classList.remove('hidden')};
-async function start(){try{view='menu';await load();$('#loginView').classList.add('hidden');$('#appView').classList.remove('hidden');db.channel('olitec-live').on('postgres_changes',{event:'*',schema:'public'},()=>load().catch(()=>{})).subscribe()}catch(e){$('#loginError').textContent='Database non pronto: '+e.message;$('#loginError').classList.remove('hidden')}}
+async function start(){try{view='menu';const {data:{user}}=await db.auth.getUser();const prof=await db.from('profiles').select('member_id').eq('id',user.id).single();currentProfileMemberId=prof.data?.member_id||null;await load();$('#loginView').classList.add('hidden');$('#appView').classList.remove('hidden');db.channel('olitec-live').on('postgres_changes',{event:'*',schema:'public'},()=>load().catch(()=>{})).subscribe()}catch(e){$('#loginError').textContent='Database non pronto: '+e.message;$('#loginError').classList.remove('hidden')}}
 </script>
 </body></html>
