@@ -231,28 +231,24 @@ function renderStudy(){
   $('#studyView').querySelectorAll('[data-view]').forEach(b=>b.onclick=()=>{view=b.dataset.view;render()});
 }
 function renderStudyMaterials(){
-  const examOptions=exams.map(e=>`<option value="${e.id}">${escape(e.name)}</option>`).join('');
-  const examsList=exams.map((e,i)=>`<div class="item"><span><b>${i+1}. ${escape(e.name)}</b></span><button class="danger" onclick="removeExam('${e.id}')">Rimuovi</button></div>`).join('')||'<p class="empty">Nessun esame configurato.</p>';
   const materialsByExam=exams.map(e=>{
     const mats=studyMaterials.filter(m=>m.exam_id===e.id);
-    const rows=mats.map(m=>`<div class="item"><span><b>${escape(m.title)}</b>${m.link_url?` · <a href="${escape(m.link_url)}" target="_blank" rel="noopener">Link</a>`:''}${m.file_path?` · <button class="secondary" onclick="openStudyMaterial('${m.file_path}','${escape(m.title).replace(/'/g,"\\'")}')">Apri file</button>`:''}</span><button class="danger" onclick="removeMaterial('${m.id}')">Rimuovi</button></div>`).join('')||'<p class="empty">Nessun materiale.</p>';
+    const rows=mats.map(m=>`<div class="item"><span><b>${escape(m.title)}</b>${m.link_url?` · <a href="${escape(m.link_url)}" target="_blank" rel="noopener">Link</a>`:''}${m.file_path?` · <button class="secondary" onclick="openStudyMaterial('${m.file_path}','${escape(m.title).replace(/'/g,"\\'")}')">Apri file</button>`:''}</span><div class="actions"><button class="secondary" onclick="editMaterial('${m.id}')">Modifica</button><button class="danger" onclick="removeMaterial('${m.id}')">Rimuovi</button></div></div>`).join('')||'<p class="empty">Nessun materiale.</p>';
     return `<section class="card"><h2 style="margin-top:0">${escape(e.name)}</h2><div class="list">${rows}</div></section>`;
   }).join('');
-  $('#studyMaterialsView').innerHTML=`<div class="top"><div><h1>Materiale</h1><p class="subtitle">Contenuti di studio per ciascun esame del percorso, sbloccati in ordine.</p></div></div><section class="card"><h2 style="margin-top:0">Esami del percorso</h2><form id="examForm" class="toolbar"><input id="newExamName" required placeholder="Nome nuovo esame"><button class="primary">Aggiungi</button></form><div class="list">${examsList}</div></section><section class="card"><h2 style="margin-top:0">Aggiungi materiale</h2><form id="materialForm"><div class="form-grid"><label>Esame<select name="exam_id" required>${examOptions}</select></label><label>Titolo<input name="title" required></label><label>Link<input name="link_url" type="url" placeholder="https://..."></label><label>File<input name="file" type="file"></label></div><div class="actions" style="margin-top:16px"><button class="primary">Aggiungi materiale</button></div></form></section>${materialsByExam}`;
-  $('#examForm').onsubmit=async e=>{
-    e.preventDefault();
-    const name=$('#newExamName').value.trim(); if(!name) return;
-    const order_index=exams.length?Math.max(...exams.map(x=>x.order_index))+1:1;
-    const r=await db.from('exams').insert({name,order_index});
-    if(r.error) return flash(r.error.message,true);
-    flash('Esame aggiunto.'); await load();
-  };
-  $('#materialForm').onsubmit=async e=>{
+  $('#studyMaterialsView').innerHTML=`<div class="top"><div><h1>Materiale</h1><p class="subtitle">Contenuti di studio per ciascun esame del percorso, sbloccati in ordine.</p></div><button class="primary" id="newMaterialBtn">+ Nuovo materiale</button></div>${materialsByExam||'<p class="empty">Nessun esame configurato. Vai su Esami per crearne uno.</p>'}`;
+  $('#newMaterialBtn').onclick=()=>materialForm();
+}
+function materialForm(it={}){
+  const examOptions=exams.map(e=>`<option value="${e.id}" ${it.exam_id===e.id?'selected':''}>${escape(e.name)}</option>`).join('');
+  $('#studyMaterialsView').innerHTML=`<div class="top"><div><h1>${it.id?'Modifica':'Nuovo'} materiale</h1></div></div><form class="card" id="materialForm2"><div class="form-grid"><label>Esame<select name="exam_id" required>${examOptions}</select></label><label>Titolo<input name="title" required value="${escape(it.title||'')}"></label><label>Link<input name="link_url" type="url" placeholder="https://..." value="${escape(it.link_url||'')}"></label><label>File${it.file_path?' (lascia vuoto per non sostituire)':''}<input name="file" type="file"></label></div><div class="actions" style="margin-top:16px"><button class="primary">Salva</button><button type="button" class="secondary" id="cancelMaterial">Annulla</button>${it.id?'<button type="button" class="danger" id="deleteMaterial">Elimina</button>':''}</div></form>`;
+  $('#cancelMaterial').onclick=renderStudyMaterials;
+  $('#materialForm2').onsubmit=async e=>{
     e.preventDefault();
     const form=e.target, data=Object.fromEntries(new FormData(form));
     const file=form.file.files[0]; delete data.file;
     data.link_url=data.link_url||null;
-    const r=await db.from('study_materials').insert(data).select().single();
+    const r=it.id?await db.from('study_materials').update(data).eq('id',it.id).select().single():await db.from('study_materials').insert(data).select().single();
     if(r.error) return flash(r.error.message,true);
     if(file){
       const path=`${r.data.id}/${file.name}`;
@@ -261,10 +257,11 @@ function renderStudyMaterials(){
       const upd=await db.from('study_materials').update({file_path:path}).eq('id',r.data.id);
       if(upd.error) return flash(upd.error.message,true);
     }
-    flash('Materiale aggiunto.'); await load();
+    flash('Materiale salvato.'); await load();
   };
+  if(it.id) $('#deleteMaterial').onclick=async()=>{if(confirm('Eliminare questo materiale?')){const r=await db.from('study_materials').delete().eq('id',it.id);if(r.error) flash(r.error.message,true); else {flash('Materiale eliminato.'); await load();}}};
 }
-window.removeExam=async id=>{if(confirm('Rimuovere questo esame? Verranno rimossi anche il materiale e i record collegati.')){const r=await db.from('exams').delete().eq('id',id);if(r.error) flash(r.error.message,true); else await load();}};
+window.editMaterial=id=>materialForm(studyMaterials.find(m=>m.id===id));
 window.removeMaterial=async id=>{if(confirm('Rimuovere questo materiale?')){const r=await db.from('study_materials').delete().eq('id',id);if(r.error) flash(r.error.message,true); else await load();}};
 window.openStudyMaterial=async(path,title)=>{
   const r=await db.storage.from('study-materials').createSignedUrl(path,3600);
@@ -272,9 +269,37 @@ window.openStudyMaterial=async(path,title)=>{
   showDocument(r.data.signedUrl,title,path);
 };
 function renderStudyExams(){
+  const examsList=exams.map((e,i)=>`<div class="item"><span><b>${i+1}. ${escape(e.name)}</b></span><div class="actions"><button class="secondary" onclick="moveExam('${e.id}',-1)" ${i===0?'disabled':''}>↑</button><button class="secondary" onclick="moveExam('${e.id}',1)" ${i===exams.length-1?'disabled':''}>↓</button><button class="secondary" onclick="editExam('${e.id}')">Modifica</button><button class="danger" onclick="removeExam('${e.id}')">Rimuovi</button></div></div>`).join('')||'<p class="empty">Nessun esame configurato.</p>';
   const rows=examRequests.map(r=>`<tr><td>${r.members?escape(r.members.first_name+' '+r.members.last_name):'—'}</td><td>${escape(r.exams?.name||'—')}</td><td>${new Date(r.created_at).toLocaleString('it-IT')}</td><td>${examRequestStatusLabel[r.status]||r.status}</td><td>${r.status==='pending'?`<button class="secondary" onclick="decideExamRequest('${r.id}','approved')">Approva</button> <button class="danger" onclick="decideExamRequest('${r.id}','rejected')">Rifiuta</button>`:''}</td></tr>`).join('');
-  $('#studyExamsView').innerHTML=`<div class="top"><div><h1>Esami</h1><p class="subtitle">Richieste d'esame dei cadetti.</p></div></div><section class="card"><div class="table-wrap"><table><thead><tr><th>Cadetto</th><th>Esame</th><th>Data richiesta</th><th>Stato</th><th></th></tr></thead><tbody>${rows||'<tr><td colspan="5" class="empty">Nessuna richiesta.</td></tr>'}</tbody></table></div></section>`;
+  $('#studyExamsView').innerHTML=`<div class="top"><div><h1>Esami</h1><p class="subtitle">Percorso esami e richieste dei cadetti.</p></div></div><section class="card"><h2 style="margin-top:0">Esami del percorso</h2><form id="examForm" class="toolbar"><input id="newExamName" required placeholder="Nome nuovo esame"><button class="primary">Aggiungi</button></form><div class="list">${examsList}</div></section><section class="card"><h2 style="margin-top:0">Richieste d'esame</h2><div class="table-wrap"><table><thead><tr><th>Cadetto</th><th>Esame</th><th>Data richiesta</th><th>Stato</th><th></th></tr></thead><tbody>${rows||'<tr><td colspan="5" class="empty">Nessuna richiesta.</td></tr>'}</tbody></table></div></section>`;
+  $('#examForm').onsubmit=async e=>{
+    e.preventDefault();
+    const name=$('#newExamName').value.trim(); if(!name) return;
+    const order_index=exams.length?Math.max(...exams.map(x=>x.order_index))+1:1;
+    const r=await db.from('exams').insert({name,order_index});
+    if(r.error) return flash(r.error.message,true);
+    flash('Esame aggiunto.'); await load();
+  };
 }
+window.editExam=async id=>{
+  const exam=exams.find(e=>e.id===id); if(!exam) return;
+  const name=prompt('Nuovo nome esame:',exam.name);
+  if(!name||!name.trim()||name.trim()===exam.name) return;
+  const r=await db.from('exams').update({name:name.trim()}).eq('id',id);
+  if(r.error) return flash(r.error.message,true);
+  flash('Esame aggiornato.'); await load();
+};
+window.moveExam=async(id,direction)=>{
+  const sorted=[...exams].sort((a,b)=>a.order_index-b.order_index);
+  const idx=sorted.findIndex(e=>e.id===id), swapIdx=idx+direction;
+  if(swapIdx<0||swapIdx>=sorted.length) return;
+  const a=sorted[idx], b=sorted[swapIdx];
+  const r1=await db.from('exams').update({order_index:b.order_index}).eq('id',a.id);
+  const r2=await db.from('exams').update({order_index:a.order_index}).eq('id',b.id);
+  if(r1.error||r2.error) return flash((r1.error||r2.error).message,true);
+  await load();
+};
+window.removeExam=async id=>{if(confirm('Rimuovere questo esame? Verranno rimossi anche il materiale e i record collegati.')){const r=await db.from('exams').delete().eq('id',id);if(r.error) flash(r.error.message,true); else await load();}};
 window.decideExamRequest=async(id,status)=>{
   const u=(await db.auth.getUser()).data.user;
   const r=await db.from('exam_requests').update({status,decided_at:new Date().toISOString(),decided_by:u.id}).eq('id',id).eq('status','pending').select();
