@@ -13,7 +13,7 @@ dialog{border:0;border-radius:14px;padding:0;width:min(560px,calc(100vw - 28px))
 @media(max-width:760px){.app{display:block}aside{padding:13px 16px;position:sticky;top:0;z-index:3;flex-direction:row;align-items:center}.brand small{display:none}.brand strong{font-size:1.2rem}nav{display:flex;overflow:auto;flex:1}nav button{white-space:nowrap}.logout{margin:0}main{padding:24px 16px}.top{display:block}.top .primary{margin-top:14px;width:100%}.form-grid,.two{grid-template-columns:1fr}.span-2{grid-column:span 1}}
 </style></head><body>
 <section class="login" id="loginView"><form class="login-card" id="loginForm"><h1>Olitec</h1><p>Accesso alla gestione condivisa.</p><div id="loginError" class="notice hidden"></div><label>Username<input id="username" required autocomplete="username"></label><label>Password<input id="password" type="password" required autocomplete="current-password"></label><button class="primary" type="submit">Accedi</button><p class="footer">Primo accesso: admin / admin</p></form></section>
-<section class="app hidden" id="appView"><aside><div class="brand"><small>Fondazione</small><strong>Olitec</strong></div><nav id="nav"></nav><button class="secondary logout" id="logout">Esci</button></aside><main><div id="status"></div><section id="menuView" class="view"></section><section id="membersView" class="view hidden"></section><section id="structuresView" class="view hidden"></section><section id="gradesView" class="view hidden"></section><section id="groupsView" class="view hidden"></section><section id="notificationsView" class="view hidden"></section><section id="inboxView" class="view hidden"></section><section id="inventoryView" class="view hidden"></section><section id="inventoryFoodView" class="view hidden"></section><section id="inventoryEquipmentView" class="view hidden"></section><section id="inventoryClothingView" class="view hidden"></section><section id="inventoryConsumablesView" class="view hidden"></section><section id="requestsView" class="view hidden"></section><section id="rulesView" class="view hidden"></section><section id="profiloView" class="view hidden"></section><section id="profiloAnagraficaView" class="view hidden"></section><section id="profiloRichiesteView" class="view hidden"></section></main></section>
+<section class="app hidden" id="appView"><aside><div class="brand"><small>Fondazione</small><strong>Olitec</strong></div><nav id="nav"></nav><button class="secondary logout" id="logout">Esci</button></aside><main><div id="status"></div><section id="menuView" class="view"></section><section id="membersView" class="view hidden"></section><section id="structuresView" class="view hidden"></section><section id="gradesView" class="view hidden"></section><section id="groupsView" class="view hidden"></section><section id="notificationsView" class="view hidden"></section><section id="inboxView" class="view hidden"></section><section id="inventoryView" class="view hidden"></section><section id="inventoryFoodView" class="view hidden"></section><section id="inventoryEquipmentView" class="view hidden"></section><section id="inventoryClothingView" class="view hidden"></section><section id="inventoryConsumablesView" class="view hidden"></section><section id="requestsView" class="view hidden"></section><section id="rulesView" class="view hidden"></section><section id="profiloView" class="view hidden"></section><section id="profiloAnagraficaView" class="view hidden"></section><section id="profiloRichiesteView" class="view hidden"></section><section id="profiloEsamiView" class="view hidden"></section><section id="profiloMaterialeView" class="view hidden"></section><section id="studyView" class="view hidden"></section><section id="studyMaterialsView" class="view hidden"></section><section id="studyExamsView" class="view hidden"></section><section id="studyRegistroView" class="view hidden"></section></main></section>
 <dialog id="detailDialog"><div class="modal"><div class="modal-head"><span></span><button class="close" type="button" id="closeDetail" aria-label="Chiudi">×</button></div><div id="detailContent"></div><div class="actions" style="margin-top:16px"><button class="secondary" type="button" id="editFromDetail">Modifica anagrafica</button></div></div></dialog>
 <dialog id="photoDialog"><div class="modal"><div class="modal-head"><h2 id="photoTitle">Foto profilo</h2><button class="close" type="button" id="closePhoto" aria-label="Chiudi">×</button></div><img id="fullPhoto" alt="Foto profilo" style="width:100%;max-height:70vh;object-fit:contain;border-radius:10px"></div></dialog>
 <dialog id="documentDialog" style="width:min(900px,calc(100vw - 28px))"><div class="modal"><div class="modal-head"><h2 id="documentTitle">Documento</h2><button class="close" type="button" id="closeDocument" aria-label="Chiudi">×</button></div><img id="documentImage" alt="Documento" style="width:100%;max-height:75vh;object-fit:contain;border-radius:10px;display:none"><iframe id="documentFrame" style="width:100%;height:75vh;border:0;border-radius:10px" title="Documento"></iframe></div></dialog>
@@ -21,7 +21,7 @@ dialog{border:0;border-radius:14px;padding:0;width:min(560px,calc(100vw - 28px))
 const SUPABASE_URL='https://xiqihzndgvhmaygsrcdh.supabase.co';
 const SUPABASE_KEY='sb_publishable_AeGBs64qTcLzvZppepy8qg_7YOdivrE';
 const db=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
-const $=s=>document.querySelector(s); let structures=[],grades=[],members=[],groups=[],notifications=[],inventoryItems=[],itemRequests=[],assignmentRules=[],inventoryMovements=[],view='menu',inventoryStructureId=null,currentProfileMemberId=null;
+const $=s=>document.querySelector(s); let structures=[],grades=[],members=[],groups=[],notifications=[],inventoryItems=[],itemRequests=[],assignmentRules=[],inventoryMovements=[],exams=[],studyMaterials=[],examRecords=[],examRequests=[],view='menu',inventoryStructureId=null,currentProfileMemberId=null;
 const escape=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const initials=m=>((m.first_name||'?')[0]+(m.last_name||'?')[0]).toUpperCase();
 const italianDate=d=>d?new Date(d+'T00:00:00').toLocaleDateString('it-IT'):'—';
@@ -29,7 +29,7 @@ function duration(date){if(!date) return '—';const start=new Date(date+'T00:00
 function flash(message,error=false){$('#status').innerHTML=`<div class="notice ${error?'':'ok'}">${escape(message)}</div>`;setTimeout(()=>$('#status').innerHTML='',4500)}
 
 async function load(){
-  const [s,g,m,gr,nt,inv,req,rules,mov]=await Promise.all([
+  const [s,g,m,gr,nt,inv,req,rules,mov,ex,mat,rec,exreq]=await Promise.all([
     db.from('structures').select('*').order('name'),
     db.from('grades').select('*').order('name'),
     db.from('members').select('*,grades(name,image_url),member_structures(structures(id,name))').order('last_name'),
@@ -38,10 +38,14 @@ async function load(){
     db.from('inventory_items').select('*').order('name'),
     db.from('item_requests').select('*,members(first_name,last_name)').order('created_at',{ascending:false}),
     db.from('assignment_rules').select('*').order('item_name'),
-    db.from('inventory_movements').select('*').order('created_at',{ascending:false})
+    db.from('inventory_movements').select('*').order('created_at',{ascending:false}),
+    db.from('exams').select('*').order('order_index'),
+    db.from('study_materials').select('*').order('created_at'),
+    db.from('exam_records').select('*'),
+    db.from('exam_requests').select('*,members(first_name,last_name),exams(name)').order('created_at',{ascending:false})
   ]);
-  for(const r of[s,g,m,gr,nt,inv,req,rules,mov]) if(r.error) throw r.error;
-  structures=s.data; grades=g.data; members=m.data; groups=gr.data; notifications=nt.data; inventoryItems=inv.data; itemRequests=req.data; assignmentRules=rules.data; inventoryMovements=mov.data;
+  for(const r of[s,g,m,gr,nt,inv,req,rules,mov,ex,mat,rec,exreq]) if(r.error) throw r.error;
+  structures=s.data; grades=g.data; members=m.data; groups=gr.data; notifications=nt.data; inventoryItems=inv.data; itemRequests=req.data; assignmentRules=rules.data; inventoryMovements=mov.data; exams=ex.data; studyMaterials=mat.data; examRecords=rec.data; examRequests=exreq.data;
   render();
 }
 
@@ -60,9 +64,15 @@ const navTree={
   inventoryConsumables:[['inventory','Inventario']],
   requests:[['inventory','Inventario'],['rules','Regole di assegnazione']],
   rules:[['requests','Richieste']],
-  profilo:[['menu','Menu'],['profiloAnagrafica','Anagrafica'],['profiloRichieste','Richieste']],
+  profilo:[['menu','Menu'],['profiloAnagrafica','Anagrafica'],['profiloRichieste','Richieste'],['profiloEsami','Esami'],['profiloMateriale','Materiale']],
   profiloAnagrafica:[['profilo','Profilo']],
-  profiloRichieste:[['profilo','Profilo']]
+  profiloRichieste:[['profilo','Profilo']],
+  profiloEsami:[['profilo','Profilo']],
+  profiloMateriale:[['profilo','Profilo']],
+  study:[['menu','Menu'],['studyMaterials','Materiale'],['studyExams','Esami'],['studyRegistro','Registro']],
+  studyMaterials:[['study','Studio']],
+  studyExams:[['study','Studio']],
+  studyRegistro:[['study','Studio']]
 };
 function render(){
   const entries=navTree[view]||[];
@@ -70,13 +80,13 @@ function render(){
   $('#nav').querySelectorAll('button').forEach(b=>b.onclick=()=>{view=b.dataset.view;render()});
   document.querySelectorAll('.view').forEach(x=>x.classList.add('hidden'));
   $('#'+view+'View').classList.remove('hidden');
-  ({menu:renderMenu,members:renderMembers,structures:renderStructures,grades:renderGrades,groups:renderGroups,notifications:renderNotifications,inbox:renderInbox,inventory:renderInventory,inventoryFood:renderInventoryFood,inventoryEquipment:renderInventoryEquipment,inventoryClothing:renderInventoryClothing,inventoryConsumables:renderInventoryConsumables,requests:renderRequests,rules:renderRules,profilo:renderProfilo,profiloAnagrafica:renderProfiloAnagrafica,profiloRichieste:renderProfiloRichieste})[view]();
+  ({menu:renderMenu,members:renderMembers,structures:renderStructures,grades:renderGrades,groups:renderGroups,notifications:renderNotifications,inbox:renderInbox,inventory:renderInventory,inventoryFood:renderInventoryFood,inventoryEquipment:renderInventoryEquipment,inventoryClothing:renderInventoryClothing,inventoryConsumables:renderInventoryConsumables,requests:renderRequests,rules:renderRules,profilo:renderProfilo,profiloAnagrafica:renderProfiloAnagrafica,profiloRichieste:renderProfiloRichieste,profiloEsami:renderProfiloEsami,profiloMateriale:renderProfiloMateriale,study:renderStudy,studyMaterials:renderStudyMaterials,studyExams:renderStudyExams,studyRegistro:renderStudyRegistro})[view]();
 }
 
 function renderMenu(){
   const m=members.find(x=>x.id===currentProfileMemberId);
   const avatar=m?.photo_url?`<img class="avatar" src="${m.photo_url}" alt="">`:`<span class="avatar">${m?initials(m):'?'}</span>`;
-  $('#menuView').innerHTML=`<div class="top"><div><h1>Menu</h1><p class="subtitle">Gestione della Fondazione Olivetti Tecnologia e Ricerca</p></div><button class="secondary" id="profileBtn" style="display:flex;align-items:center;gap:9px">${avatar}<span>Profilo</span></button></div><div class="menu-grid"><button class="menu-card" data-view="members"><b>Anagrafiche</b><span>Consulta e gestisci le schede di tutti i membri, le strutture e i gradi.</span></button><button class="menu-card" data-view="inventory"><b>Inventario</b><span>Consulta e gestisci gli articoli e i relativi costi unitari.</span></button></div>`;
+  $('#menuView').innerHTML=`<div class="top"><div><h1>Menu</h1><p class="subtitle">Gestione della Fondazione Olivetti Tecnologia e Ricerca</p></div><button class="secondary" id="profileBtn" style="display:flex;align-items:center;gap:9px">${avatar}<span>Profilo</span></button></div><div class="menu-grid"><button class="menu-card" data-view="members"><b>Anagrafiche</b><span>Consulta e gestisci le schede di tutti i membri, le strutture e i gradi.</span></button><button class="menu-card" data-view="inventory"><b>Inventario</b><span>Consulta e gestisci gli articoli e i relativi costi unitari.</span></button><button class="menu-card" data-view="study"><b>Studio</b><span>Materiale di studio, esami e registro dei cadetti.</span></button></div>`;
   $('#profileBtn').onclick=()=>{view='profilo';render()};
   $('#menuView').querySelectorAll('[data-view]').forEach(b=>b.onclick=()=>{view=b.dataset.view;render()});
 }
@@ -182,7 +192,7 @@ async function submitItemRequest(memberId,itemId,quantity){
 function renderProfilo(){
   const m=members.find(x=>x.id===currentProfileMemberId);
   const avatar=m?.photo_url?`<img class="detail-photo" src="${m.photo_url}" alt="">`:`<span class="detail-photo">${m?initials(m):'?'}</span>`;
-  $('#profiloView').innerHTML=`<div class="top"><div><h1>Profilo</h1><p class="subtitle">${m?escape(m.first_name)+' '+escape(m.last_name):'Account amministratore'}</p></div></div><div class="menu-grid"><button class="menu-card" data-view="profiloAnagrafica"><b>Anagrafica</b><span>La tua scheda personale.</span></button><button class="menu-card" data-view="profiloRichieste"><b>Richieste</b><span>Invia una richiesta di materiale.</span></button></div>`;
+  $('#profiloView').innerHTML=`<div class="top"><div><h1>Profilo</h1><p class="subtitle">${m?escape(m.first_name)+' '+escape(m.last_name):'Account amministratore'}</p></div></div><div class="menu-grid"><button class="menu-card" data-view="profiloAnagrafica"><b>Anagrafica</b><span>La tua scheda personale.</span></button><button class="menu-card" data-view="profiloRichieste"><b>Richieste</b><span>Invia una richiesta di materiale.</span></button><button class="menu-card" data-view="profiloEsami"><b>Esami</b><span>Richiedi di sostenere il tuo esame corrente.</span></button><button class="menu-card" data-view="profiloMateriale"><b>Materiale</b><span>Il materiale di studio sbloccato per te.</span></button></div>`;
   $('#profiloView').querySelectorAll('[data-view]').forEach(b=>b.onclick=()=>{view=b.dataset.view;render()});
 }
 function renderProfiloAnagrafica(){
@@ -209,6 +219,106 @@ function renderProfiloRichieste(){
     submitItemRequest(currentProfileMemberId,$('#preqItem').value,Number($('#preqQuantity').value));
   };
 }
+
+function currentExamForMember(memberId){
+  const passedIds=new Set(examRecords.filter(r=>r.member_id===memberId && r.passed).map(r=>r.exam_id));
+  return exams.find(e=>!passedIds.has(e.id))||null;
+}
+const examRequestStatusLabel={pending:'In attesa',approved:'Approvata',rejected:'Rifiutata'};
+
+function renderStudy(){
+  $('#studyView').innerHTML=`<div class="top"><div><h1>Studio</h1><p class="subtitle">Materiale di studio, esami e registro dei cadetti.</p></div></div><div class="menu-grid"><button class="menu-card" data-view="studyMaterials"><b>Materiale</b><span>Esami del percorso e relativi link/documenti.</span></button><button class="menu-card" data-view="studyExams"><b>Esami</b><span>Richieste d'esame e approvazioni.</span></button><button class="menu-card" data-view="studyRegistro"><b>Registro</b><span>Esiti esami di tutti i cadetti.</span></button></div>`;
+  $('#studyView').querySelectorAll('[data-view]').forEach(b=>b.onclick=()=>{view=b.dataset.view;render()});
+}
+function renderStudyMaterials(){
+  const examOptions=exams.map(e=>`<option value="${e.id}">${escape(e.name)}</option>`).join('');
+  const examsList=exams.map((e,i)=>`<div class="item"><span><b>${i+1}. ${escape(e.name)}</b></span><button class="danger" onclick="removeExam('${e.id}')">Rimuovi</button></div>`).join('')||'<p class="empty">Nessun esame configurato.</p>';
+  const materialsByExam=exams.map(e=>{
+    const mats=studyMaterials.filter(m=>m.exam_id===e.id);
+    const rows=mats.map(m=>`<div class="item"><span><b>${escape(m.title)}</b>${m.link_url?` · <a href="${escape(m.link_url)}" target="_blank" rel="noopener">Link</a>`:''}${m.file_path?` · <button class="secondary" onclick="openStudyMaterial('${m.file_path}','${escape(m.title).replace(/'/g,"\\'")}')">Apri file</button>`:''}</span><button class="danger" onclick="removeMaterial('${m.id}')">Rimuovi</button></div>`).join('')||'<p class="empty">Nessun materiale.</p>';
+    return `<section class="card"><h2 style="margin-top:0">${escape(e.name)}</h2><div class="list">${rows}</div></section>`;
+  }).join('');
+  $('#studyMaterialsView').innerHTML=`<div class="top"><div><h1>Materiale</h1><p class="subtitle">Contenuti di studio per ciascun esame del percorso, sbloccati in ordine.</p></div></div><section class="card"><h2 style="margin-top:0">Esami del percorso</h2><form id="examForm" class="toolbar"><input id="newExamName" required placeholder="Nome nuovo esame"><button class="primary">Aggiungi</button></form><div class="list">${examsList}</div></section><section class="card"><h2 style="margin-top:0">Aggiungi materiale</h2><form id="materialForm"><div class="form-grid"><label>Esame<select name="exam_id" required>${examOptions}</select></label><label>Titolo<input name="title" required></label><label>Link<input name="link_url" type="url" placeholder="https://..."></label><label>File<input name="file" type="file"></label></div><div class="actions" style="margin-top:16px"><button class="primary">Aggiungi materiale</button></div></form></section>${materialsByExam}`;
+  $('#examForm').onsubmit=async e=>{
+    e.preventDefault();
+    const name=$('#newExamName').value.trim(); if(!name) return;
+    const order_index=exams.length?Math.max(...exams.map(x=>x.order_index))+1:1;
+    const r=await db.from('exams').insert({name,order_index});
+    if(r.error) return flash(r.error.message,true);
+    flash('Esame aggiunto.'); await load();
+  };
+  $('#materialForm').onsubmit=async e=>{
+    e.preventDefault();
+    const form=e.target, data=Object.fromEntries(new FormData(form));
+    const file=form.file.files[0]; delete data.file;
+    data.link_url=data.link_url||null;
+    const r=await db.from('study_materials').insert(data).select().single();
+    if(r.error) return flash(r.error.message,true);
+    if(file){
+      const path=`${r.data.id}/${file.name}`;
+      const up=await db.storage.from('study-materials').upload(path,file,{upsert:true});
+      if(up.error) return flash(up.error.message,true);
+      const upd=await db.from('study_materials').update({file_path:path}).eq('id',r.data.id);
+      if(upd.error) return flash(upd.error.message,true);
+    }
+    flash('Materiale aggiunto.'); await load();
+  };
+}
+window.removeExam=async id=>{if(confirm('Rimuovere questo esame? Verranno rimossi anche il materiale e i record collegati.')){const r=await db.from('exams').delete().eq('id',id);if(r.error) flash(r.error.message,true); else await load();}};
+window.removeMaterial=async id=>{if(confirm('Rimuovere questo materiale?')){const r=await db.from('study_materials').delete().eq('id',id);if(r.error) flash(r.error.message,true); else await load();}};
+window.openStudyMaterial=async(path,title)=>{
+  const r=await db.storage.from('study-materials').createSignedUrl(path,3600);
+  if(r.error) return flash(r.error.message,true);
+  showDocument(r.data.signedUrl,title,path);
+};
+function renderStudyExams(){
+  const rows=examRequests.map(r=>`<tr><td>${r.members?escape(r.members.first_name+' '+r.members.last_name):'—'}</td><td>${escape(r.exams?.name||'—')}</td><td>${new Date(r.created_at).toLocaleString('it-IT')}</td><td>${examRequestStatusLabel[r.status]||r.status}</td><td>${r.status==='pending'?`<button class="secondary" onclick="decideExamRequest('${r.id}','approved')">Approva</button> <button class="danger" onclick="decideExamRequest('${r.id}','rejected')">Rifiuta</button>`:''}</td></tr>`).join('');
+  $('#studyExamsView').innerHTML=`<div class="top"><div><h1>Esami</h1><p class="subtitle">Richieste d'esame dei cadetti.</p></div></div><section class="card"><div class="table-wrap"><table><thead><tr><th>Cadetto</th><th>Esame</th><th>Data richiesta</th><th>Stato</th><th></th></tr></thead><tbody>${rows||'<tr><td colspan="5" class="empty">Nessuna richiesta.</td></tr>'}</tbody></table></div></section>`;
+}
+window.decideExamRequest=async(id,status)=>{
+  const u=(await db.auth.getUser()).data.user;
+  const r=await db.from('exam_requests').update({status,decided_at:new Date().toISOString(),decided_by:u.id}).eq('id',id).eq('status','pending').select();
+  if(r.error) return flash(r.error.message,true);
+  if(!r.data.length){ flash('Questa richiesta è già stata gestita.',true); await load(); return; }
+  flash(status==='approved'?'Richiesta approvata.':'Richiesta rifiutata.'); await load();
+};
+function renderStudyRegistro(){
+  const header=exams.map(e=>`<th>${escape(e.name)}</th>`).join('');
+  const rows=members.map(m=>{
+    const cells=exams.map(e=>{
+      const rec=examRecords.find(r=>r.member_id===m.id && r.exam_id===e.id);
+      const passed=rec?.passed;
+      return `<td><button class="secondary" style="${passed?'background:var(--soft);color:#18563d;border-color:transparent':'background:#fff0ef;color:#a43c37;border-color:transparent'}" onclick="toggleExamRecord('${m.id}','${e.id}')">${passed?'✓ Superato':'Non superato'}</button></td>`;
+    }).join('');
+    return `<tr><td><b>${escape(m.first_name)} ${escape(m.last_name)}</b></td>${cells}</tr>`;
+  }).join('');
+  $('#studyRegistroView').innerHTML=`<div class="top"><div><h1>Registro</h1><p class="subtitle">Esiti esami di tutti i cadetti. Clicca per segnare superato/non superato.</p></div></div><section class="card"><div class="table-wrap"><table><thead><tr><th>Cadetto</th>${header}</tr></thead><tbody>${rows||'<tr><td class="empty">Nessun dato.</td></tr>'}</tbody></table></div></section>`;
+}
+window.toggleExamRecord=async(memberId,examId)=>{
+  const rec=examRecords.find(r=>r.member_id===memberId && r.exam_id===examId);
+  const r=rec?await db.from('exam_records').update({passed:!rec.passed,passed_at:!rec.passed?new Date().toISOString():null}).eq('id',rec.id):await db.from('exam_records').insert({member_id:memberId,exam_id:examId,passed:true,passed_at:new Date().toISOString()});
+  if(r.error) return flash(r.error.message,true);
+  await load();
+};
+function renderProfiloEsami(){
+  const current=currentExamForMember(currentProfileMemberId);
+  const myRequests=examRequests.filter(r=>r.member_id===currentProfileMemberId);
+  const rows=myRequests.map(r=>`<tr><td>${escape(r.exams?.name||'—')}</td><td>${new Date(r.created_at).toLocaleString('it-IT')}</td><td>${examRequestStatusLabel[r.status]||r.status}</td></tr>`).join('');
+  $('#profiloEsamiView').innerHTML=`<div class="top"><div><h1>Esami</h1><p class="subtitle">${current?`Il tuo esame corrente: <b>${escape(current.name)}</b>`:'Hai completato tutti gli esami disponibili.'}</p></div></div>${current?`<section class="card"><button class="primary" id="requestExamBtn">Richiedi di sostenere l'esame</button></section>`:''}<section class="card"><h2 style="margin-top:0">Le tue richieste</h2><div class="table-wrap"><table><thead><tr><th>Esame</th><th>Data</th><th>Stato</th></tr></thead><tbody>${rows||'<tr><td colspan="3" class="empty">Nessuna richiesta.</td></tr>'}</tbody></table></div></section>`;
+  if(current) $('#requestExamBtn').onclick=async()=>{
+    if(myRequests.some(r=>r.exam_id===current.id && r.status==='pending')) return flash('Hai già una richiesta in attesa per questo esame.',true);
+    const r=await db.from('exam_requests').insert({member_id:currentProfileMemberId,exam_id:current.id});
+    if(r.error) return flash(r.error.message,true);
+    flash('Richiesta inviata.'); await load();
+  };
+}
+function renderProfiloMateriale(){
+  const current=currentExamForMember(currentProfileMemberId);
+  if(!current){ $('#profiloMaterialeView').innerHTML=`<div class="top"><div><h1>Materiale</h1></div></div><p class="empty">Nessun esame corrente: hai completato il percorso, oppure non hai un'anagrafica collegata.</p>`; return; }
+  const rows=studyMaterials.filter(m=>m.exam_id===current.id).map(m=>`<div class="item"><span><b>${escape(m.title)}</b>${m.link_url?` · <a href="${escape(m.link_url)}" target="_blank" rel="noopener">Apri link</a>`:''}${m.file_path?` · <button class="secondary" onclick="openStudyMaterial('${m.file_path}','${escape(m.title).replace(/'/g,"\\'")}')">Apri file</button>`:''}</span></div>`).join('')||'<p class="empty">Nessun materiale disponibile per questo esame.</p>';
+  $('#profiloMaterialeView').innerHTML=`<div class="top"><div><h1>Materiale</h1><p class="subtitle">Materiale sbloccato per l'esame corrente: <b>${escape(current.name)}</b></p></div></div><section class="card"><div class="list">${rows}</div></section>`;
+}
+
 window.decideRequest=async(id,status)=>{
   const request=itemRequests.find(r=>r.id===id);
   const u=(await db.auth.getUser()).data.user;
