@@ -221,6 +221,8 @@ function renderProfiloRichieste(){
 }
 
 function currentExamForMember(memberId){
+  const member=members.find(m=>m.id===memberId);
+  if(member?.study_excluded) return null;
   const passedIds=new Set(examRecords.filter(r=>r.member_id===memberId && r.passed).map(r=>r.exam_id));
   return exams.find(e=>!passedIds.has(e.id))||null;
 }
@@ -331,6 +333,14 @@ window.recordExamOutcome=async(id,passed)=>{
   const payload={member_id:request.member_id,exam_id:request.exam_id,passed,passed_at:passed?new Date().toISOString():null};
   const rec=existing?await db.from('exam_records').update(payload).eq('id',existing.id):await db.from('exam_records').insert(payload);
   if(rec.error) return flash(rec.error.message,true);
+  if(!passed){
+    const priorFailures=examRequests.filter(er=>er.member_id===request.member_id && er.exam_id===request.exam_id && er.status==='failed').length;
+    if(priorFailures+1>=3){
+      const ex=await db.from('members').update({study_excluded:true}).eq('id',request.member_id);
+      if(ex.error) return flash(ex.error.message,true);
+      flash('Esame bocciato per la terza volta: cadetto escluso dal percorso.',true); await load(); return;
+    }
+  }
   flash(passed?'Esame segnato come superato, registro aggiornato.':'Esame segnato come bocciato, registro aggiornato.'); await load();
 };
 function renderStudyRegistro(){
@@ -338,12 +348,14 @@ function renderStudyRegistro(){
   const rows=members.map(m=>{
     const cells=exams.map(e=>{
       const rec=examRecords.find(r=>r.member_id===m.id && r.exam_id===e.id);
-      const passed=rec?.passed;
-      return `<td><button class="secondary" style="${passed?'background:var(--soft);color:#18563d;border-color:transparent':'background:#fff0ef;color:#a43c37;border-color:transparent'}" onclick="toggleExamRecord('${m.id}','${e.id}')">${passed?'✓ Superato':'Non superato'}</button></td>`;
+      const label=rec?(rec.passed?'✓ Superato':'✗ Bocciato'):'In preparazione';
+      const style=rec?(rec.passed?'background:var(--soft);color:#18563d;border-color:transparent':'background:#fff0ef;color:#a43c37;border-color:transparent'):'';
+      return `<td><button class="secondary" style="${style}" onclick="toggleExamRecord('${m.id}','${e.id}')">${label}</button></td>`;
     }).join('');
-    return `<tr><td><b>${escape(m.first_name)} ${escape(m.last_name)}</b></td>${cells}</tr>`;
+    return `<tr><td><b>${escape(m.first_name)} ${escape(m.last_name)}</b>${m.study_excluded?' <span class="chip" style="background:#fff0ef;color:#a43c37">Escluso dal percorso</span>':''}</td>${cells}</tr>`;
   }).join('');
-  $('#studyRegistroView').innerHTML=`<div class="top"><div><h1>Registro</h1><p class="subtitle">Esiti esami di tutti i cadetti. Clicca per segnare superato/non superato.</p></div></div><section class="card"><div class="table-wrap"><table><thead><tr><th>Cadetto</th>${header}</tr></thead><tbody>${rows||'<tr><td class="empty">Nessun dato.</td></tr>'}</tbody></table></div></section>`;
+  $('#studyRegistroView').innerHTML=`<div class="top"><div><h1>Registro</h1><p class="subtitle">Esiti esami di tutti i cadetti. Clicca su una casella per correggerla manualmente.</p></div><button class="danger" id="resetRegistroBtn">Reset registro e progressi</button></div><section class="card"><div class="table-wrap"><table><thead><tr><th>Cadetto</th>${header}</tr></thead><tbody>${rows||'<tr><td class="empty">Nessun dato.</td></tr>'}</tbody></table></div></section>`;
+  $('#resetRegistroBtn').onclick=resetRegistro;
 }
 window.toggleExamRecord=async(memberId,examId)=>{
   const rec=examRecords.find(r=>r.member_id===memberId && r.exam_id===examId);
@@ -351,7 +363,20 @@ window.toggleExamRecord=async(memberId,examId)=>{
   if(r.error) return flash(r.error.message,true);
   await load();
 };
+async function resetRegistro(){
+  if(!confirm('Azzerare TUTTO il registro esami, le richieste e le esclusioni dal percorso? Utile solo per fare prove: non è reversibile.')) return;
+  const r1=await db.from('exam_records').delete().neq('id','00000000-0000-0000-0000-000000000000');
+  const r2=await db.from('exam_requests').delete().neq('id','00000000-0000-0000-0000-000000000000');
+  const r3=await db.from('members').update({study_excluded:false}).neq('id','00000000-0000-0000-0000-000000000000');
+  if(r1.error||r2.error||r3.error) return flash((r1.error||r2.error||r3.error).message,true);
+  flash('Registro e progressi azzerati.'); await load();
+}
 function renderProfiloEsami(){
+  const member=members.find(m=>m.id===currentProfileMemberId);
+  if(member?.study_excluded){
+    $('#profiloEsamiView').innerHTML=`<div class="top"><div><h1>Esami</h1></div></div><section class="card"><p class="empty">Sei stato escluso dal percorso di studio dopo aver bocciato lo stesso esame per 3 volte.</p></section>`;
+    return;
+  }
   const current=currentExamForMember(currentProfileMemberId);
   const myRequests=examRequests.filter(r=>r.member_id===currentProfileMemberId);
   const rows=myRequests.map(r=>`<tr><td>${escape(r.exams?.name||'—')}</td><td>${new Date(r.created_at).toLocaleString('it-IT')}</td><td>${r.scheduled_date?italianDate(r.scheduled_date):'—'}</td><td>${examRequestStatusLabel[r.status]||r.status}</td></tr>`).join('');
@@ -364,6 +389,8 @@ function renderProfiloEsami(){
   };
 }
 function renderProfiloMateriale(){
+  const member=members.find(m=>m.id===currentProfileMemberId);
+  if(member?.study_excluded){ $('#profiloMaterialeView').innerHTML=`<div class="top"><div><h1>Materiale</h1></div></div><p class="empty">Sei stato escluso dal percorso di studio.</p>`; return; }
   const current=currentExamForMember(currentProfileMemberId);
   if(!current){ $('#profiloMaterialeView').innerHTML=`<div class="top"><div><h1>Materiale</h1></div></div><p class="empty">Nessun esame corrente: hai completato il percorso, oppure non hai un'anagrafica collegata.</p>`; return; }
   const rows=studyMaterials.filter(m=>m.exam_id===current.id).map(m=>`<div class="item"><span><b>${escape(m.title)}</b>${m.link_url?` · <a href="${escape(m.link_url)}" target="_blank" rel="noopener">Apri link</a>`:''}${m.file_path?` · <button class="secondary" onclick="openStudyMaterial('${m.file_path}','${escape(m.title).replace(/'/g,"\\'")}')">Apri file</button>`:''}</span></div>`).join('')||'<p class="empty">Nessun materiale disponibile per questo esame.</p>';
