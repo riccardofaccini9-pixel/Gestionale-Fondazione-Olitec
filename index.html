@@ -224,7 +224,7 @@ function currentExamForMember(memberId){
   const passedIds=new Set(examRecords.filter(r=>r.member_id===memberId && r.passed).map(r=>r.exam_id));
   return exams.find(e=>!passedIds.has(e.id))||null;
 }
-const examRequestStatusLabel={pending:'In attesa',approved:'Approvata',rejected:'Rifiutata'};
+const examRequestStatusLabel={pending:'In attesa',approved:'Approvata',rejected:'Rifiutata',passed:'Superato',failed:'Bocciato'};
 
 function renderStudy(){
   $('#studyView').innerHTML=`<div class="top"><div><h1>Studio</h1><p class="subtitle">Materiale di studio, esami e registro dei cadetti.</p></div></div><div class="menu-grid"><button class="menu-card" data-view="studyMaterials"><b>Materiale</b><span>Esami del percorso e relativi link/documenti.</span></button><button class="menu-card" data-view="studyExams"><b>Esami</b><span>Richieste d'esame e approvazioni.</span></button><button class="menu-card" data-view="studyRegistro"><b>Registro</b><span>Esiti esami di tutti i cadetti.</span></button></div>`;
@@ -270,8 +270,13 @@ window.openStudyMaterial=async(path,title)=>{
 };
 function renderStudyExams(){
   const examsList=exams.map((e,i)=>`<div class="item"><span><b>${i+1}. ${escape(e.name)}</b></span><div class="actions"><button class="secondary" onclick="moveExam('${e.id}',-1)" ${i===0?'disabled':''}>↑</button><button class="secondary" onclick="moveExam('${e.id}',1)" ${i===exams.length-1?'disabled':''}>↓</button><button class="secondary" onclick="editExam('${e.id}')">Modifica</button><button class="danger" onclick="removeExam('${e.id}')">Rimuovi</button></div></div>`).join('')||'<p class="empty">Nessun esame configurato.</p>';
-  const rows=examRequests.map(r=>`<tr><td>${r.members?escape(r.members.first_name+' '+r.members.last_name):'—'}</td><td>${escape(r.exams?.name||'—')}</td><td>${new Date(r.created_at).toLocaleString('it-IT')}</td><td>${examRequestStatusLabel[r.status]||r.status}</td><td>${r.status==='pending'?`<button class="secondary" onclick="decideExamRequest('${r.id}','approved')">Approva</button> <button class="danger" onclick="decideExamRequest('${r.id}','rejected')">Rifiuta</button>`:''}</td></tr>`).join('');
-  $('#studyExamsView').innerHTML=`<div class="top"><div><h1>Esami</h1><p class="subtitle">Percorso esami e richieste dei cadetti.</p></div></div><section class="card"><h2 style="margin-top:0">Esami del percorso</h2><form id="examForm" class="toolbar"><input id="newExamName" required placeholder="Nome nuovo esame"><button class="primary">Aggiungi</button></form><div class="list">${examsList}</div></section><section class="card"><h2 style="margin-top:0">Richieste d'esame</h2><div class="table-wrap"><table><thead><tr><th>Cadetto</th><th>Esame</th><th>Data richiesta</th><th>Stato</th><th></th></tr></thead><tbody>${rows||'<tr><td colspan="5" class="empty">Nessuna richiesta.</td></tr>'}</tbody></table></div></section>`;
+  const rows=examRequests.map(r=>{
+    let actionCell='';
+    if(r.status==='pending') actionCell=`<button class="secondary" onclick="approveExamRequest('${r.id}')">Approva</button> <button class="danger" onclick="rejectExamRequest('${r.id}')">Rifiuta</button>`;
+    else if(r.status==='approved') actionCell=`<button class="secondary" onclick="recordExamOutcome('${r.id}',true)">Superato</button> <button class="danger" onclick="recordExamOutcome('${r.id}',false)">Bocciato</button>`;
+    return `<tr><td>${r.members?escape(r.members.first_name+' '+r.members.last_name):'—'}</td><td>${escape(r.exams?.name||'—')}</td><td>${new Date(r.created_at).toLocaleString('it-IT')}</td><td>${r.scheduled_date?italianDate(r.scheduled_date):'—'}</td><td>${examRequestStatusLabel[r.status]||r.status}</td><td>${actionCell}</td></tr>`;
+  }).join('');
+  $('#studyExamsView').innerHTML=`<div class="top"><div><h1>Esami</h1><p class="subtitle">Percorso esami e richieste dei cadetti.</p></div></div><section class="card"><h2 style="margin-top:0">Esami del percorso</h2><form id="examForm" class="toolbar"><input id="newExamName" required placeholder="Nome nuovo esame"><button class="primary">Aggiungi</button></form><div class="list">${examsList}</div></section><section class="card"><h2 style="margin-top:0">Richieste d'esame</h2><div class="table-wrap"><table><thead><tr><th>Cadetto</th><th>Esame</th><th>Data richiesta</th><th>Data esame</th><th>Stato</th><th></th></tr></thead><tbody>${rows||'<tr><td colspan="6" class="empty">Nessuna richiesta.</td></tr>'}</tbody></table></div></section>`;
   $('#examForm').onsubmit=async e=>{
     e.preventDefault();
     const name=$('#newExamName').value.trim(); if(!name) return;
@@ -300,12 +305,33 @@ window.moveExam=async(id,direction)=>{
   await load();
 };
 window.removeExam=async id=>{if(confirm('Rimuovere questo esame? Verranno rimossi anche il materiale e i record collegati.')){const r=await db.from('exams').delete().eq('id',id);if(r.error) flash(r.error.message,true); else await load();}};
-window.decideExamRequest=async(id,status)=>{
+window.approveExamRequest=async id=>{
+  const date=prompt("Data dell'esame (AAAA-MM-GG):");
+  if(!date) return;
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(date.trim())) return flash('Formato data non valido, usa AAAA-MM-GG.',true);
   const u=(await db.auth.getUser()).data.user;
-  const r=await db.from('exam_requests').update({status,decided_at:new Date().toISOString(),decided_by:u.id}).eq('id',id).eq('status','pending').select();
+  const r=await db.from('exam_requests').update({status:'approved',scheduled_date:date.trim(),decided_at:new Date().toISOString(),decided_by:u.id}).eq('id',id).eq('status','pending').select();
   if(r.error) return flash(r.error.message,true);
   if(!r.data.length){ flash('Questa richiesta è già stata gestita.',true); await load(); return; }
-  flash(status==='approved'?'Richiesta approvata.':'Richiesta rifiutata.'); await load();
+  flash("Richiesta approvata, data esame impostata."); await load();
+};
+window.rejectExamRequest=async id=>{
+  const u=(await db.auth.getUser()).data.user;
+  const r=await db.from('exam_requests').update({status:'rejected',decided_at:new Date().toISOString(),decided_by:u.id}).eq('id',id).eq('status','pending').select();
+  if(r.error) return flash(r.error.message,true);
+  if(!r.data.length){ flash('Questa richiesta è già stata gestita.',true); await load(); return; }
+  flash('Richiesta rifiutata.'); await load();
+};
+window.recordExamOutcome=async(id,passed)=>{
+  const request=examRequests.find(r=>r.id===id); if(!request) return;
+  const r=await db.from('exam_requests').update({status:passed?'passed':'failed'}).eq('id',id).eq('status','approved').select();
+  if(r.error) return flash(r.error.message,true);
+  if(!r.data.length){ flash('Questa richiesta non è più in stato "approvata".',true); await load(); return; }
+  const existing=examRecords.find(rec=>rec.member_id===request.member_id && rec.exam_id===request.exam_id);
+  const payload={member_id:request.member_id,exam_id:request.exam_id,passed,passed_at:passed?new Date().toISOString():null};
+  const rec=existing?await db.from('exam_records').update(payload).eq('id',existing.id):await db.from('exam_records').insert(payload);
+  if(rec.error) return flash(rec.error.message,true);
+  flash(passed?'Esame segnato come superato, registro aggiornato.':'Esame segnato come bocciato, registro aggiornato.'); await load();
 };
 function renderStudyRegistro(){
   const header=exams.map(e=>`<th>${escape(e.name)}</th>`).join('');
@@ -328,8 +354,8 @@ window.toggleExamRecord=async(memberId,examId)=>{
 function renderProfiloEsami(){
   const current=currentExamForMember(currentProfileMemberId);
   const myRequests=examRequests.filter(r=>r.member_id===currentProfileMemberId);
-  const rows=myRequests.map(r=>`<tr><td>${escape(r.exams?.name||'—')}</td><td>${new Date(r.created_at).toLocaleString('it-IT')}</td><td>${examRequestStatusLabel[r.status]||r.status}</td></tr>`).join('');
-  $('#profiloEsamiView').innerHTML=`<div class="top"><div><h1>Esami</h1><p class="subtitle">${current?`Il tuo esame corrente: <b>${escape(current.name)}</b>`:'Hai completato tutti gli esami disponibili.'}</p></div></div>${current?`<section class="card"><button class="primary" id="requestExamBtn">Richiedi di sostenere l'esame</button></section>`:''}<section class="card"><h2 style="margin-top:0">Le tue richieste</h2><div class="table-wrap"><table><thead><tr><th>Esame</th><th>Data</th><th>Stato</th></tr></thead><tbody>${rows||'<tr><td colspan="3" class="empty">Nessuna richiesta.</td></tr>'}</tbody></table></div></section>`;
+  const rows=myRequests.map(r=>`<tr><td>${escape(r.exams?.name||'—')}</td><td>${new Date(r.created_at).toLocaleString('it-IT')}</td><td>${r.scheduled_date?italianDate(r.scheduled_date):'—'}</td><td>${examRequestStatusLabel[r.status]||r.status}</td></tr>`).join('');
+  $('#profiloEsamiView').innerHTML=`<div class="top"><div><h1>Esami</h1><p class="subtitle">${current?`Il tuo esame corrente: <b>${escape(current.name)}</b>`:'Hai completato tutti gli esami disponibili.'}</p></div></div>${current?`<section class="card"><button class="primary" id="requestExamBtn">Richiedi di sostenere l'esame</button></section>`:''}<section class="card"><h2 style="margin-top:0">Le tue richieste</h2><div class="table-wrap"><table><thead><tr><th>Esame</th><th>Data richiesta</th><th>Data esame</th><th>Stato</th></tr></thead><tbody>${rows||'<tr><td colspan="4" class="empty">Nessuna richiesta.</td></tr>'}</tbody></table></div></section>`;
   if(current) $('#requestExamBtn').onclick=async()=>{
     if(myRequests.some(r=>r.exam_id===current.id && r.status==='pending')) return flash('Hai già una richiesta in attesa per questo esame.',true);
     const r=await db.from('exam_requests').insert({member_id:currentProfileMemberId,exam_id:current.id});
