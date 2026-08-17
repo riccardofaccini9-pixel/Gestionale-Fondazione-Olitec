@@ -21,7 +21,7 @@ dialog{border:0;border-radius:14px;padding:0;width:min(560px,calc(100vw - 28px))
 const SUPABASE_URL='https://xiqihzndgvhmaygsrcdh.supabase.co';
 const SUPABASE_KEY='sb_publishable_AeGBs64qTcLzvZppepy8qg_7YOdivrE';
 const db=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
-const $=s=>document.querySelector(s); let structures=[],grades=[],members=[],groups=[],notifications=[],inventoryItems=[],itemRequests=[],assignmentRules=[],inventoryMovements=[],exams=[],studyMaterials=[],examRecords=[],examRequests=[],view='menu',inventoryStructureId=null,currentProfileMemberId=null;
+const $=s=>document.querySelector(s); let structures=[],grades=[],members=[],groups=[],notifications=[],inventoryItems=[],itemRequests=[],assignmentRules=[],inventoryMovements=[],exams=[],studyMaterials=[],examRecords=[],examRequests=[],view='menu',inventoryStructureId=null,currentProfileMemberId=null,registroStructureId=null;
 const escape=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const initials=m=>((m.first_name||'?')[0]+(m.last_name||'?')[0]).toUpperCase();
 const italianDate=d=>d?new Date(d+'T00:00:00').toLocaleDateString('it-IT'):'—';
@@ -235,7 +235,7 @@ function renderStudy(){
 function renderStudyMaterials(){
   const materialsByExam=exams.map(e=>{
     const mats=studyMaterials.filter(m=>m.exam_id===e.id);
-    const rows=mats.map(m=>`<div class="item"><span><b>${escape(m.title)}</b>${m.link_url?` · <a href="${escape(m.link_url)}" target="_blank" rel="noopener">Link</a>`:''}${m.file_path?` · <button class="secondary" onclick="openStudyMaterial('${m.file_path}','${escape(m.title).replace(/'/g,"\\'")}')">Apri file</button>`:''}</span><div class="actions"><button class="secondary" onclick="editMaterial('${m.id}')">Modifica</button><button class="danger" onclick="removeMaterial('${m.id}')">Rimuovi</button></div></div>`).join('')||'<p class="empty">Nessun materiale.</p>';
+    const rows=mats.map(m=>`<div class="item"><span><b>${escape(m.title)}</b>${m.link_url?` · <button class="secondary" type="button" onclick="showDocument('${escape(m.link_url).replace(/'/g,"\\'")}','${escape(m.title).replace(/'/g,"\\'")}','${escape(m.link_url).replace(/'/g,"\\'")}')">Apri link</button>`:''}${m.file_path?` · <button class="secondary" onclick="openStudyMaterial('${m.file_path}','${escape(m.title).replace(/'/g,"\\'")}')">Apri file</button>`:''}</span><div class="actions"><button class="secondary" onclick="editMaterial('${m.id}')">Modifica</button><button class="danger" onclick="removeMaterial('${m.id}')">Rimuovi</button></div></div>`).join('')||'<p class="empty">Nessun materiale.</p>';
     return `<section class="card"><h2 style="margin-top:0">${escape(e.name)}</h2><div class="list">${rows}</div></section>`;
   }).join('');
   $('#studyMaterialsView').innerHTML=`<div class="top"><div><h1>Materiale</h1><p class="subtitle">Contenuti di studio per ciascun esame del percorso, sbloccati in ordine.</p></div><button class="primary" id="newMaterialBtn">+ Nuovo materiale</button></div>${materialsByExam||'<p class="empty">Nessun esame configurato. Vai su Esami per crearne uno.</p>'}`;
@@ -308,11 +308,15 @@ window.moveExam=async(id,direction)=>{
 };
 window.removeExam=async id=>{if(confirm('Rimuovere questo esame? Verranno rimossi anche il materiale e i record collegati.')){const r=await db.from('exams').delete().eq('id',id);if(r.error) flash(r.error.message,true); else await load();}};
 window.approveExamRequest=async id=>{
-  const date=prompt("Data dell'esame (AAAA-MM-GG):");
-  if(!date) return;
-  if(!/^\d{4}-\d{2}-\d{2}$/.test(date.trim())) return flash('Formato data non valido, usa AAAA-MM-GG.',true);
+  const raw=prompt("Data dell'esame (GGMMAAAA, es. 25122026):");
+  if(!raw) return;
+  const digits=raw.trim();
+  if(!/^\d{8}$/.test(digits)) return flash('Formato data non valido, usa GGMMAAAA (es. 25122026).',true);
+  const dd=digits.slice(0,2), mm=digits.slice(2,4), yyyy=digits.slice(4,8);
+  if(Number(dd)<1||Number(dd)>31||Number(mm)<1||Number(mm)>12) return flash('Data non valida.',true);
+  const isoDate=`${yyyy}-${mm}-${dd}`;
   const u=(await db.auth.getUser()).data.user;
-  const r=await db.from('exam_requests').update({status:'approved',scheduled_date:date.trim(),decided_at:new Date().toISOString(),decided_by:u.id}).eq('id',id).eq('status','pending').select();
+  const r=await db.from('exam_requests').update({status:'approved',scheduled_date:isoDate,decided_at:new Date().toISOString(),decided_by:u.id}).eq('id',id).eq('status','pending').select();
   if(r.error) return flash(r.error.message,true);
   if(!r.data.length){ flash('Questa richiesta è già stata gestita.',true); await load(); return; }
   flash("Richiesta approvata, data esame impostata."); await load();
@@ -344,8 +348,10 @@ window.recordExamOutcome=async(id,passed)=>{
   flash(passed?'Esame segnato come superato, registro aggiornato.':'Esame segnato come bocciato, registro aggiornato.'); await load();
 };
 function renderStudyRegistro(){
+  if(!registroStructureId && structures.length) registroStructureId=structures[0].id;
+  const visibleMembers=members.filter(m=>(m.member_structures||[]).some(x=>x.structures?.id===registroStructureId));
   const header=exams.map(e=>`<th>${escape(e.name)}</th>`).join('');
-  const rows=members.map(m=>{
+  const rows=visibleMembers.map(m=>{
     const cells=exams.map(e=>{
       const rec=examRecords.find(r=>r.member_id===m.id && r.exam_id===e.id);
       const label=rec?(rec.passed?'✓ Superato':'✗ Bocciato'):'In preparazione';
@@ -354,7 +360,9 @@ function renderStudyRegistro(){
     }).join('');
     return `<tr><td><b>${escape(m.first_name)} ${escape(m.last_name)}</b>${m.study_excluded?' <span class="chip" style="background:#fff0ef;color:#a43c37">Escluso dal percorso</span>':''}</td>${cells}</tr>`;
   }).join('');
-  $('#studyRegistroView').innerHTML=`<div class="top"><div><h1>Registro</h1><p class="subtitle">Esiti esami di tutti i cadetti. Clicca su una casella per correggerla manualmente.</p></div><button class="danger" id="resetRegistroBtn">Reset registro e progressi</button></div><section class="card"><div class="table-wrap"><table><thead><tr><th>Cadetto</th>${header}</tr></thead><tbody>${rows||'<tr><td class="empty">Nessun dato.</td></tr>'}</tbody></table></div></section>`;
+  const structureOptions=structures.map(s=>`<option value="${s.id}" ${s.id===registroStructureId?'selected':''}>${escape(s.name)}</option>`).join('');
+  $('#studyRegistroView').innerHTML=`<div class="top"><div><h1>Registro</h1><p class="subtitle">Esiti esami dei cadetti della struttura selezionata. Clicca su una casella per correggerla manualmente.</p></div><button class="danger" id="resetRegistroBtn">Reset registro e progressi</button></div><section class="card" style="padding:16px 20px"><label style="margin:0">Struttura<select class="registro-structure-select">${structureOptions}</select></label></section><section class="card"><div class="table-wrap"><table><thead><tr><th>Cadetto</th>${header}</tr></thead><tbody>${rows||'<tr><td class="empty">Nessun cadetto in questa struttura.</td></tr>'}</tbody></table></div></section>`;
+  $('#studyRegistroView .registro-structure-select').onchange=e=>{registroStructureId=e.target.value;renderStudyRegistro();};
   $('#resetRegistroBtn').onclick=resetRegistro;
 }
 window.toggleExamRecord=async(memberId,examId)=>{
@@ -393,7 +401,7 @@ function renderProfiloMateriale(){
   if(member?.study_excluded){ $('#profiloMaterialeView').innerHTML=`<div class="top"><div><h1>Materiale</h1></div></div><p class="empty">Sei stato escluso dal percorso di studio.</p>`; return; }
   const current=currentExamForMember(currentProfileMemberId);
   if(!current){ $('#profiloMaterialeView').innerHTML=`<div class="top"><div><h1>Materiale</h1></div></div><p class="empty">Nessun esame corrente: hai completato il percorso, oppure non hai un'anagrafica collegata.</p>`; return; }
-  const rows=studyMaterials.filter(m=>m.exam_id===current.id).map(m=>`<div class="item"><span><b>${escape(m.title)}</b>${m.link_url?` · <a href="${escape(m.link_url)}" target="_blank" rel="noopener">Apri link</a>`:''}${m.file_path?` · <button class="secondary" onclick="openStudyMaterial('${m.file_path}','${escape(m.title).replace(/'/g,"\\'")}')">Apri file</button>`:''}</span></div>`).join('')||'<p class="empty">Nessun materiale disponibile per questo esame.</p>';
+  const rows=studyMaterials.filter(m=>m.exam_id===current.id).map(m=>`<div class="item"><span><b>${escape(m.title)}</b>${m.link_url?` · <button class="secondary" type="button" onclick="showDocument('${escape(m.link_url).replace(/'/g,"\\'")}','${escape(m.title).replace(/'/g,"\\'")}','${escape(m.link_url).replace(/'/g,"\\'")}')">Apri link</button>`:''}${m.file_path?` · <button class="secondary" onclick="openStudyMaterial('${m.file_path}','${escape(m.title).replace(/'/g,"\\'")}')">Apri file</button>`:''}</span></div>`).join('')||'<p class="empty">Nessun materiale disponibile per questo esame.</p>';
   $('#profiloMaterialeView').innerHTML=`<div class="top"><div><h1>Materiale</h1><p class="subtitle">Materiale sbloccato per l'esame corrente: <b>${escape(current.name)}</b></p></div></div><section class="card"><div class="list">${rows}</div></section>`;
 }
 
