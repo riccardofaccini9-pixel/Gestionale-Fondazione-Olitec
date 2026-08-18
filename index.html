@@ -89,8 +89,12 @@ function render(){
 function renderMenu(){
   const m=members.find(x=>x.id===currentProfileMemberId);
   const avatar=m?.photo_url?`<img class="avatar" src="${m.photo_url}" alt="">`:`<span class="avatar">${m?initials(m):'?'}</span>`;
-  $('#menuView').innerHTML=`<div class="top"><div><h1>Menu</h1><p class="subtitle">Gestione della Fondazione Olivetti Tecnologia e Ricerca</p></div><button class="secondary" id="profileBtn" style="display:flex;align-items:center;gap:9px">${avatar}<span>Profilo</span></button></div><div class="menu-grid"><button class="menu-card" data-view="members"><b>Anagrafiche</b><span>Consulta e gestisci le schede di tutti i membri, le strutture e i gradi.</span></button><button class="menu-card" data-view="inventory"><b>Inventario</b><span>Consulta e gestisci gli articoli e i relativi costi unitari.</span></button><button class="menu-card" data-view="study"><b>Studio</b><span>Materiale di studio, esami e registro dei cadetti.</span></button><button class="menu-card" data-view="presenza"><b>Presenza</b><span>Registro presenze in struttura, diviso per casa.</span></button></div>`;
+  const notifSupported='Notification' in window;
+  const notifGranted=notifSupported && Notification.permission==='granted';
+  const notifBtn=notifSupported?`<button class="secondary" id="notifBtn" ${notifGranted?'disabled':''}>${notifGranted?'🔔 Notifiche attive':'🔔 Attiva notifiche desktop'}</button>`:'';
+  $('#menuView').innerHTML=`<div class="top"><div><h1>Menu</h1><p class="subtitle">Gestione della Fondazione Olivetti Tecnologia e Ricerca</p></div><div class="actions">${notifBtn}<button class="secondary" id="profileBtn" style="display:flex;align-items:center;gap:9px">${avatar}<span>Profilo</span></button></div></div><div class="menu-grid"><button class="menu-card" data-view="members"><b>Anagrafiche</b><span>Consulta e gestisci le schede di tutti i membri, le strutture e i gradi.</span></button><button class="menu-card" data-view="inventory"><b>Inventario</b><span>Consulta e gestisci gli articoli e i relativi costi unitari.</span></button><button class="menu-card" data-view="study"><b>Studio</b><span>Materiale di studio, esami e registro dei cadetti.</span></button><button class="menu-card" data-view="presenza"><b>Presenza</b><span>Registro presenze in struttura, diviso per casa.</span></button></div>`;
   $('#profileBtn').onclick=()=>{view='profilo';render()};
+  if(notifSupported && !notifGranted) $('#notifBtn').onclick=()=>Notification.requestPermission().then(()=>renderMenu());
   $('#menuView').querySelectorAll('[data-view]').forEach(b=>b.onclick=()=>{view=b.dataset.view;render()});
 }
 
@@ -716,6 +720,14 @@ function renderInboxList(){
 
 $('#loginForm').onsubmit=async e=>{e.preventDefault();const username=$('#username').value.trim(),email=username.includes('@')?username:`${username}@olitec.local`;const {error}=await db.auth.signInWithPassword({email,password:$('#password').value});if(error){$('#loginError').textContent='Accesso non riuscito: '+error.message;$('#loginError').classList.remove('hidden');return}start()};
 $('#logout').onclick=async()=>{await db.auth.signOut();$('#appView').classList.add('hidden');$('#loginView').classList.remove('hidden')};
-async function start(){try{view='menu';const {data:{user}}=await db.auth.getUser();const prof=await db.from('profiles').select('member_id').eq('id',user.id).single();currentProfileMemberId=prof.data?.member_id||null;await load();$('#loginView').classList.add('hidden');$('#appView').classList.remove('hidden');db.channel('olitec-live').on('postgres_changes',{event:'*',schema:'public'},()=>load().catch(()=>{})).subscribe()}catch(e){$('#loginError').textContent='Database non pronto: '+e.message;$('#loginError').classList.remove('hidden')}}
+function notifyAttendanceChange(row){
+  if(!('Notification' in window) || Notification.permission!=='granted') return;
+  const member=members.find(m=>m.id===row.member_id);
+  if(!member) return;
+  const structureName=(member.member_structures||[]).map(x=>x.structures?.name).filter(Boolean).join(', ')||'struttura sconosciuta';
+  const verb=row.status==='presente'?'si è presentato/a alla struttura di':'si è assentato/a dalla struttura di';
+  new Notification('Presenza aggiornata',{body:`${member.first_name} ${member.last_name} ${verb} ${structureName}`});
+}
+async function start(){try{view='menu';const {data:{user}}=await db.auth.getUser();const prof=await db.from('profiles').select('member_id').eq('id',user.id).single();currentProfileMemberId=prof.data?.member_id||null;await load();$('#loginView').classList.add('hidden');$('#appView').classList.remove('hidden');db.channel('olitec-live').on('postgres_changes',{event:'*',schema:'public'},()=>load().catch(()=>{})).subscribe();db.channel('attendance-notify').on('postgres_changes',{event:'INSERT',schema:'public',table:'attendance_events'},payload=>notifyAttendanceChange(payload.new)).subscribe();if('Notification' in window && Notification.permission==='default') Notification.requestPermission()}catch(e){$('#loginError').textContent='Database non pronto: '+e.message;$('#loginError').classList.remove('hidden')}}
 </script>
 </body></html>
