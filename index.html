@@ -13,7 +13,7 @@ dialog{border:0;border-radius:14px;padding:0;width:min(560px,calc(100vw - 28px))
 @media(max-width:760px){.app{display:block}aside{padding:13px 16px;position:sticky;top:0;z-index:3;flex-direction:row;align-items:center}.brand small{display:none}.brand strong{font-size:1.2rem}nav{display:flex;overflow:auto;flex:1}nav button{white-space:nowrap}.logout{margin:0}main{padding:24px 16px}.top{display:block}.top .primary{margin-top:14px;width:100%}.form-grid,.two{grid-template-columns:1fr}.span-2{grid-column:span 1}}
 </style></head><body>
 <section class="login" id="loginView"><form class="login-card" id="loginForm"><h1>Olitec</h1><p>Accesso alla gestione condivisa.</p><div id="loginError" class="notice hidden"></div><label>Username<input id="username" required autocomplete="username"></label><label>Password<input id="password" type="password" required autocomplete="current-password"></label><button class="primary" type="submit">Accedi</button><p class="footer">Primo accesso: admin / admin</p></form></section>
-<section class="app hidden" id="appView"><aside><div class="brand"><small>Fondazione</small><strong>Olitec</strong></div><nav id="nav"></nav><button class="secondary logout" id="logout">Esci</button></aside><main><div id="status"></div><section id="menuView" class="view"></section><section id="membersView" class="view hidden"></section><section id="structuresView" class="view hidden"></section><section id="gradesView" class="view hidden"></section><section id="groupsView" class="view hidden"></section><section id="notificationsView" class="view hidden"></section><section id="inboxView" class="view hidden"></section><section id="inventoryView" class="view hidden"></section><section id="inventoryFoodView" class="view hidden"></section><section id="inventoryEquipmentView" class="view hidden"></section><section id="inventoryClothingView" class="view hidden"></section><section id="inventoryConsumablesView" class="view hidden"></section><section id="requestsView" class="view hidden"></section><section id="rulesView" class="view hidden"></section><section id="profiloView" class="view hidden"></section><section id="profiloAnagraficaView" class="view hidden"></section><section id="profiloRichiesteView" class="view hidden"></section><section id="profiloEsamiView" class="view hidden"></section><section id="profiloMaterialeView" class="view hidden"></section><section id="studyView" class="view hidden"></section><section id="studyMaterialsView" class="view hidden"></section><section id="studyExamsView" class="view hidden"></section><section id="studyRegistroView" class="view hidden"></section></main></section>
+<section class="app hidden" id="appView"><aside><div class="brand"><small>Fondazione</small><strong>Olitec</strong></div><nav id="nav"></nav><button class="secondary logout" id="logout">Esci</button></aside><main><div id="status"></div><section id="menuView" class="view"></section><section id="membersView" class="view hidden"></section><section id="structuresView" class="view hidden"></section><section id="gradesView" class="view hidden"></section><section id="groupsView" class="view hidden"></section><section id="notificationsView" class="view hidden"></section><section id="inboxView" class="view hidden"></section><section id="inventoryView" class="view hidden"></section><section id="inventoryFoodView" class="view hidden"></section><section id="inventoryEquipmentView" class="view hidden"></section><section id="inventoryClothingView" class="view hidden"></section><section id="inventoryConsumablesView" class="view hidden"></section><section id="requestsView" class="view hidden"></section><section id="rulesView" class="view hidden"></section><section id="profiloView" class="view hidden"></section><section id="profiloAnagraficaView" class="view hidden"></section><section id="profiloRichiesteView" class="view hidden"></section><section id="profiloEsamiView" class="view hidden"></section><section id="profiloMaterialeView" class="view hidden"></section><section id="studyView" class="view hidden"></section><section id="studyMaterialsView" class="view hidden"></section><section id="studyExamsView" class="view hidden"></section><section id="studyRegistroView" class="view hidden"></section><section id="presenzaView" class="view hidden"></section><section id="presenzaStoricoView" class="view hidden"></section></main></section>
 <dialog id="detailDialog"><div class="modal"><div class="modal-head"><span></span><button class="close" type="button" id="closeDetail" aria-label="Chiudi">×</button></div><div id="detailContent"></div><div class="actions" style="margin-top:16px"><button class="secondary" type="button" id="editFromDetail">Modifica anagrafica</button></div></div></dialog>
 <dialog id="photoDialog"><div class="modal"><div class="modal-head"><h2 id="photoTitle">Foto profilo</h2><button class="close" type="button" id="closePhoto" aria-label="Chiudi">×</button></div><img id="fullPhoto" alt="Foto profilo" style="width:100%;max-height:70vh;object-fit:contain;border-radius:10px"></div></dialog>
 <dialog id="documentDialog" style="width:min(900px,calc(100vw - 28px))"><div class="modal"><div class="modal-head"><h2 id="documentTitle">Documento</h2><button class="close" type="button" id="closeDocument" aria-label="Chiudi">×</button></div><img id="documentImage" alt="Documento" style="width:100%;max-height:75vh;object-fit:contain;border-radius:10px;display:none"><iframe id="documentFrame" style="width:100%;height:75vh;border:0;border-radius:10px" title="Documento"></iframe></div></dialog>
@@ -21,7 +21,7 @@ dialog{border:0;border-radius:14px;padding:0;width:min(560px,calc(100vw - 28px))
 const SUPABASE_URL='https://xiqihzndgvhmaygsrcdh.supabase.co';
 const SUPABASE_KEY='sb_publishable_AeGBs64qTcLzvZppepy8qg_7YOdivrE';
 const db=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
-const $=s=>document.querySelector(s); let structures=[],grades=[],members=[],groups=[],notifications=[],inventoryItems=[],itemRequests=[],assignmentRules=[],inventoryMovements=[],exams=[],studyMaterials=[],examRecords=[],examRequests=[],view='menu',inventoryStructureId=null,currentProfileMemberId=null,registroStructureId=null;
+const $=s=>document.querySelector(s); let structures=[],grades=[],members=[],groups=[],notifications=[],inventoryItems=[],itemRequests=[],assignmentRules=[],inventoryMovements=[],exams=[],studyMaterials=[],examRecords=[],examRequests=[],view='menu',inventoryStructureId=null,currentProfileMemberId=null,registroStructureId=null,attendanceEvents=[],presenzaStructureId=null,presenzaStoricoStructureId=null;
 const escape=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const initials=m=>((m.first_name||'?')[0]+(m.last_name||'?')[0]).toUpperCase();
 const italianDate=d=>d?new Date(d+'T00:00:00').toLocaleDateString('it-IT'):'—';
@@ -29,7 +29,7 @@ function duration(date){if(!date) return '—';const start=new Date(date+'T00:00
 function flash(message,error=false){$('#status').innerHTML=`<div class="notice ${error?'':'ok'}">${escape(message)}</div>`;setTimeout(()=>$('#status').innerHTML='',4500)}
 
 async function load(){
-  const [s,g,m,gr,nt,inv,req,rules,mov,ex,mat,rec,exreq]=await Promise.all([
+  const [s,g,m,gr,nt,inv,req,rules,mov,ex,mat,rec,exreq,att]=await Promise.all([
     db.from('structures').select('*').order('name'),
     db.from('grades').select('*').order('name'),
     db.from('members').select('*,grades(name,image_url),member_structures(structures(id,name))').order('last_name'),
@@ -42,10 +42,11 @@ async function load(){
     db.from('exams').select('*').order('order_index'),
     db.from('study_materials').select('*').order('created_at'),
     db.from('exam_records').select('*'),
-    db.from('exam_requests').select('*,members(first_name,last_name),exams(name)').order('created_at',{ascending:false})
+    db.from('exam_requests').select('*,members(first_name,last_name),exams(name)').order('created_at',{ascending:false}),
+    db.from('attendance_events').select('*').order('created_at',{ascending:false})
   ]);
-  for(const r of[s,g,m,gr,nt,inv,req,rules,mov,ex,mat,rec,exreq]) if(r.error) throw r.error;
-  structures=s.data; grades=g.data; members=m.data; groups=gr.data; notifications=nt.data; inventoryItems=inv.data; itemRequests=req.data; assignmentRules=rules.data; inventoryMovements=mov.data; exams=ex.data; studyMaterials=mat.data; examRecords=rec.data; examRequests=exreq.data;
+  for(const r of[s,g,m,gr,nt,inv,req,rules,mov,ex,mat,rec,exreq,att]) if(r.error) throw r.error;
+  structures=s.data; grades=g.data; members=m.data; groups=gr.data; notifications=nt.data; inventoryItems=inv.data; itemRequests=req.data; assignmentRules=rules.data; inventoryMovements=mov.data; exams=ex.data; studyMaterials=mat.data; examRecords=rec.data; examRequests=exreq.data; attendanceEvents=att.data;
   render();
 }
 
@@ -72,7 +73,9 @@ const navTree={
   study:[['menu','Menu'],['studyMaterials','Materiale'],['studyExams','Esami'],['studyRegistro','Registro']],
   studyMaterials:[['study','Studio']],
   studyExams:[['study','Studio']],
-  studyRegistro:[['study','Studio']]
+  studyRegistro:[['study','Studio']],
+  presenza:[['menu','Menu'],['presenzaStorico','Storico']],
+  presenzaStorico:[['presenza','Presenza']]
 };
 function render(){
   const entries=navTree[view]||[];
@@ -80,13 +83,13 @@ function render(){
   $('#nav').querySelectorAll('button').forEach(b=>b.onclick=()=>{view=b.dataset.view;render()});
   document.querySelectorAll('.view').forEach(x=>x.classList.add('hidden'));
   $('#'+view+'View').classList.remove('hidden');
-  ({menu:renderMenu,members:renderMembers,structures:renderStructures,grades:renderGrades,groups:renderGroups,notifications:renderNotifications,inbox:renderInbox,inventory:renderInventory,inventoryFood:renderInventoryFood,inventoryEquipment:renderInventoryEquipment,inventoryClothing:renderInventoryClothing,inventoryConsumables:renderInventoryConsumables,requests:renderRequests,rules:renderRules,profilo:renderProfilo,profiloAnagrafica:renderProfiloAnagrafica,profiloRichieste:renderProfiloRichieste,profiloEsami:renderProfiloEsami,profiloMateriale:renderProfiloMateriale,study:renderStudy,studyMaterials:renderStudyMaterials,studyExams:renderStudyExams,studyRegistro:renderStudyRegistro})[view]();
+  ({menu:renderMenu,members:renderMembers,structures:renderStructures,grades:renderGrades,groups:renderGroups,notifications:renderNotifications,inbox:renderInbox,inventory:renderInventory,inventoryFood:renderInventoryFood,inventoryEquipment:renderInventoryEquipment,inventoryClothing:renderInventoryClothing,inventoryConsumables:renderInventoryConsumables,requests:renderRequests,rules:renderRules,profilo:renderProfilo,profiloAnagrafica:renderProfiloAnagrafica,profiloRichieste:renderProfiloRichieste,profiloEsami:renderProfiloEsami,profiloMateriale:renderProfiloMateriale,study:renderStudy,studyMaterials:renderStudyMaterials,studyExams:renderStudyExams,studyRegistro:renderStudyRegistro,presenza:renderPresenza,presenzaStorico:renderPresenzaStorico})[view]();
 }
 
 function renderMenu(){
   const m=members.find(x=>x.id===currentProfileMemberId);
   const avatar=m?.photo_url?`<img class="avatar" src="${m.photo_url}" alt="">`:`<span class="avatar">${m?initials(m):'?'}</span>`;
-  $('#menuView').innerHTML=`<div class="top"><div><h1>Menu</h1><p class="subtitle">Gestione della Fondazione Olivetti Tecnologia e Ricerca</p></div><button class="secondary" id="profileBtn" style="display:flex;align-items:center;gap:9px">${avatar}<span>Profilo</span></button></div><div class="menu-grid"><button class="menu-card" data-view="members"><b>Anagrafiche</b><span>Consulta e gestisci le schede di tutti i membri, le strutture e i gradi.</span></button><button class="menu-card" data-view="inventory"><b>Inventario</b><span>Consulta e gestisci gli articoli e i relativi costi unitari.</span></button><button class="menu-card" data-view="study"><b>Studio</b><span>Materiale di studio, esami e registro dei cadetti.</span></button></div>`;
+  $('#menuView').innerHTML=`<div class="top"><div><h1>Menu</h1><p class="subtitle">Gestione della Fondazione Olivetti Tecnologia e Ricerca</p></div><button class="secondary" id="profileBtn" style="display:flex;align-items:center;gap:9px">${avatar}<span>Profilo</span></button></div><div class="menu-grid"><button class="menu-card" data-view="members"><b>Anagrafiche</b><span>Consulta e gestisci le schede di tutti i membri, le strutture e i gradi.</span></button><button class="menu-card" data-view="inventory"><b>Inventario</b><span>Consulta e gestisci gli articoli e i relativi costi unitari.</span></button><button class="menu-card" data-view="study"><b>Studio</b><span>Materiale di studio, esami e registro dei cadetti.</span></button><button class="menu-card" data-view="presenza"><b>Presenza</b><span>Registro presenze in struttura, diviso per casa.</span></button></div>`;
   $('#profileBtn').onclick=()=>{view='profilo';render()};
   $('#menuView').querySelectorAll('[data-view]').forEach(b=>b.onclick=()=>{view=b.dataset.view;render()});
 }
@@ -192,8 +195,12 @@ async function submitItemRequest(memberId,itemId,quantity){
 function renderProfilo(){
   const m=members.find(x=>x.id===currentProfileMemberId);
   const avatar=m?.photo_url?`<img class="detail-photo" src="${m.photo_url}" alt="">`:`<span class="detail-photo">${m?initials(m):'?'}</span>`;
-  $('#profiloView').innerHTML=`<div class="top"><div><h1>Profilo</h1><p class="subtitle">${m?escape(m.first_name)+' '+escape(m.last_name):'Account amministratore'}</p></div></div><div class="menu-grid"><button class="menu-card" data-view="profiloAnagrafica"><b>Anagrafica</b><span>La tua scheda personale.</span></button><button class="menu-card" data-view="profiloRichieste"><b>Richieste</b><span>Invia una richiesta di materiale.</span></button><button class="menu-card" data-view="profiloEsami"><b>Esami</b><span>Richiedi di sostenere il tuo esame corrente.</span></button><button class="menu-card" data-view="profiloMateriale"><b>Materiale</b><span>Il materiale di studio sbloccato per te.</span></button></div>`;
+  const status=m?currentAttendance(m.id):null;
+  const isPresent=status==='presente';
+  const attendanceToggle=m?`<section class="card" style="padding:16px 20px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap"><span><b>Stato presenza</b><br><small style="color:var(--muted)">${status?(isPresent?'Sei segnato presente in struttura.':'Sei segnato assente dalla struttura.'):'Non hai ancora segnato il tuo stato.'}</small></span><button class="${isPresent?'secondary':'primary'}" id="attendanceToggleBtn">${isPresent?'Segna assente':'Segna presente'}</button></section>`:'';
+  $('#profiloView').innerHTML=`<div class="top"><div><h1>Profilo</h1><p class="subtitle">${m?escape(m.first_name)+' '+escape(m.last_name):'Account amministratore'}</p></div></div>${attendanceToggle}<div class="menu-grid"><button class="menu-card" data-view="profiloAnagrafica"><b>Anagrafica</b><span>La tua scheda personale.</span></button><button class="menu-card" data-view="profiloRichieste"><b>Richieste</b><span>Invia una richiesta di materiale.</span></button><button class="menu-card" data-view="profiloEsami"><b>Esami</b><span>Richiedi di sostenere il tuo esame corrente.</span></button><button class="menu-card" data-view="profiloMateriale"><b>Materiale</b><span>Il materiale di studio sbloccato per te.</span></button></div>`;
   $('#profiloView').querySelectorAll('[data-view]').forEach(b=>b.onclick=()=>{view=b.dataset.view;render()});
+  if(m) $('#attendanceToggleBtn').onclick=()=>setAttendance(m.id,isPresent?'assente':'presente');
 }
 function renderProfiloAnagrafica(){
   const m=members.find(x=>x.id===currentProfileMemberId);
@@ -379,6 +386,41 @@ async function resetRegistro(){
   if(r1.error||r2.error||r3.error) return flash((r1.error||r2.error||r3.error).message,true);
   flash('Registro e progressi azzerati.'); await load();
 }
+
+function currentAttendance(memberId){
+  const ev=attendanceEvents.find(e=>e.member_id===memberId);
+  return ev?ev.status:null;
+}
+window.setAttendance=async(memberId,status)=>{
+  const r=await db.from('attendance_events').insert({member_id:memberId,status});
+  if(r.error) return flash(r.error.message,true);
+  flash(status==='presente'?'Segnato presente in struttura.':'Segnato assente dalla struttura.'); await load();
+};
+function renderPresenza(){
+  if(!presenzaStructureId && structures.length) presenzaStructureId=structures[0].id;
+  const visibleMembers=members.filter(m=>(m.member_structures||[]).some(x=>x.structures?.id===presenzaStructureId));
+  const rows=visibleMembers.map(m=>{
+    const status=currentAttendance(m.id), isPresent=status==='presente';
+    const style=status?(isPresent?'background:var(--soft);color:#18563d;border-color:transparent':'background:#fff0ef;color:#a43c37;border-color:transparent'):'';
+    const label=status?(isPresent?'Presente in struttura':'Assente dalla struttura'):'Stato non impostato';
+    return `<div class="item"><span><b>${escape(m.first_name)} ${escape(m.last_name)}</b></span><button class="secondary" style="${style}" onclick="setAttendance('${m.id}','${isPresent?'assente':'presente'}')">${label}</button></div>`;
+  }).join('')||'<p class="empty">Nessun cadetto in questa struttura.</p>';
+  const structureOptions=structures.map(s=>`<option value="${s.id}" ${s.id===presenzaStructureId?'selected':''}>${escape(s.name)}</option>`).join('');
+  $('#presenzaView').innerHTML=`<div class="top"><div><h1>Presenza</h1><p class="subtitle">Registro presenze in struttura. Clicca per cambiare lo stato.</p></div></div><section class="card" style="padding:16px 20px"><label style="margin:0">Struttura<select class="presenza-structure-select">${structureOptions}</select></label></section><section class="card"><div class="list">${rows}</div></section>`;
+  $('#presenzaView .presenza-structure-select').onchange=e=>{presenzaStructureId=e.target.value;renderPresenza();};
+}
+function renderPresenzaStorico(){
+  if(!presenzaStoricoStructureId && structures.length) presenzaStoricoStructureId=structures[0].id;
+  const memberIds=new Set(members.filter(m=>(m.member_structures||[]).some(x=>x.structures?.id===presenzaStoricoStructureId)).map(m=>m.id));
+  const rows=attendanceEvents.filter(e=>memberIds.has(e.member_id)).map(e=>{
+    const m=members.find(x=>x.id===e.member_id);
+    return `<tr><td>${m?escape(m.first_name+' '+m.last_name):'—'}</td><td>${e.status==='presente'?'Presente':'Assente'}</td><td>${new Date(e.created_at).toLocaleString('it-IT')}</td></tr>`;
+  }).join('');
+  const structureOptions=structures.map(s=>`<option value="${s.id}" ${s.id===presenzaStoricoStructureId?'selected':''}>${escape(s.name)}</option>`).join('');
+  $('#presenzaStoricoView').innerHTML=`<div class="top"><div><h1>Storico</h1><p class="subtitle">Storico presenze e assenze per struttura.</p></div></div><section class="card" style="padding:16px 20px"><label style="margin:0">Struttura<select class="presenza-storico-structure-select">${structureOptions}</select></label></section><section class="card"><div class="table-wrap"><table><thead><tr><th>Cadetto</th><th>Stato</th><th>Data e ora</th></tr></thead><tbody>${rows||'<tr><td colspan="3" class="empty">Nessun dato.</td></tr>'}</tbody></table></div></section>`;
+  $('#presenzaStoricoView .presenza-storico-structure-select').onchange=e=>{presenzaStoricoStructureId=e.target.value;renderPresenzaStorico();};
+}
+
 function renderProfiloEsami(){
   const member=members.find(m=>m.id===currentProfileMemberId);
   if(member?.study_excluded){
