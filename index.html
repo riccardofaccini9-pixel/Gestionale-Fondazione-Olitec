@@ -414,11 +414,23 @@ function renderPresenzaStorico(){
   const memberIds=new Set(members.filter(m=>(m.member_structures||[]).some(x=>x.structures?.id===presenzaStoricoStructureId)).map(m=>m.id));
   const rows=attendanceEvents.filter(e=>memberIds.has(e.member_id)).map(e=>{
     const m=members.find(x=>x.id===e.member_id);
-    return `<tr><td>${m?escape(m.first_name+' '+m.last_name):'—'}</td><td>${e.status==='presente'?'Presente':'Assente'}</td><td>${new Date(e.created_at).toLocaleString('it-IT')}</td></tr>`;
+    const name=m?`${m.first_name} ${m.last_name}`:'—';
+    return `<tr data-name="${escape(name.toLowerCase())}" data-status="${e.status}"><td>${escape(name)}</td><td>${e.status==='presente'?'Presente':'Assente'}</td><td>${new Date(e.created_at).toLocaleString('it-IT')}</td></tr>`;
   }).join('');
   const structureOptions=structures.map(s=>`<option value="${s.id}" ${s.id===presenzaStoricoStructureId?'selected':''}>${escape(s.name)}</option>`).join('');
-  $('#presenzaStoricoView').innerHTML=`<div class="top"><div><h1>Storico</h1><p class="subtitle">Storico presenze e assenze per struttura.</p></div></div><section class="card" style="padding:16px 20px"><label style="margin:0">Struttura<select class="presenza-storico-structure-select">${structureOptions}</select></label></section><section class="card"><div class="table-wrap"><table><thead><tr><th>Cadetto</th><th>Stato</th><th>Data e ora</th></tr></thead><tbody>${rows||'<tr><td colspan="3" class="empty">Nessun dato.</td></tr>'}</tbody></table></div></section>`;
+  $('#presenzaStoricoView').innerHTML=`<div class="top"><div><h1>Storico</h1><p class="subtitle">Storico presenze e assenze per struttura.</p></div></div><section class="card"><div class="toolbar"><select class="presenza-storico-structure-select" style="max-width:260px">${structureOptions}</select><input class="presenza-storico-search" placeholder="Cerca per nome"><select class="presenza-storico-status-select" style="max-width:200px"><option value="">Tutti gli stati</option><option value="presente">Presente</option><option value="assente">Assente</option></select></div></section><section class="card"><div class="table-wrap"><table><thead><tr><th>Cadetto</th><th>Stato</th><th>Data e ora</th></tr></thead><tbody id="presenzaStoricoRows">${rows||'<tr><td colspan="3" class="empty">Nessun dato.</td></tr>'}</tbody></table></div></section>`;
   $('#presenzaStoricoView .presenza-storico-structure-select').onchange=e=>{presenzaStoricoStructureId=e.target.value;renderPresenzaStorico();};
+  const applyFilters=()=>{
+    const q=$('#presenzaStoricoView .presenza-storico-search').value.trim().toLowerCase();
+    const status=$('#presenzaStoricoView .presenza-storico-status-select').value;
+    $('#presenzaStoricoRows').querySelectorAll('tr[data-name]').forEach(tr=>{
+      const matchesName=!q||tr.dataset.name.includes(q);
+      const matchesStatus=!status||tr.dataset.status===status;
+      tr.style.display=(matchesName&&matchesStatus)?'':'none';
+    });
+  };
+  $('#presenzaStoricoView .presenza-storico-search').oninput=applyFilters;
+  $('#presenzaStoricoView .presenza-storico-status-select').onchange=applyFilters;
 }
 
 function renderProfiloEsami(){
