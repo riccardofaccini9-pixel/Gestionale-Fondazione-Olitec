@@ -721,13 +721,15 @@ function renderInboxList(){
 $('#loginForm').onsubmit=async e=>{e.preventDefault();const username=$('#username').value.trim(),email=username.includes('@')?username:`${username}@olitec.local`;const {error}=await db.auth.signInWithPassword({email,password:$('#password').value});if(error){$('#loginError').textContent='Accesso non riuscito: '+error.message;$('#loginError').classList.remove('hidden');return}start()};
 $('#logout').onclick=async()=>{await db.auth.signOut();$('#appView').classList.add('hidden');$('#loginView').classList.remove('hidden')};
 function notifyAttendanceChange(row){
-  if(!('Notification' in window) || Notification.permission!=='granted') return;
+  console.log('[attendance-notify] notifyAttendanceChange called with',row);
+  if(!('Notification' in window) || Notification.permission!=='granted'){ console.log('[attendance-notify] blocked: Notification permission is',typeof Notification!=='undefined'?Notification.permission:'unsupported'); return; }
   const member=members.find(m=>m.id===row.member_id);
-  if(!member) return;
+  if(!member){ console.log('[attendance-notify] blocked: no member found for id',row.member_id,'members loaded:',members.length); return; }
   const structureName=(member.member_structures||[]).map(x=>x.structures?.name).filter(Boolean).join(', ')||'struttura sconosciuta';
   const verb=row.status==='presente'?'si è presentato/a alla struttura di':'si è assentato/a dalla struttura di';
+  console.log('[attendance-notify] showing notification for',member.first_name,member.last_name);
   new Notification('Presenza aggiornata',{body:`${member.first_name} ${member.last_name} ${verb} ${structureName}`});
 }
-async function start(){try{view='menu';const {data:{user}}=await db.auth.getUser();const prof=await db.from('profiles').select('member_id').eq('id',user.id).single();currentProfileMemberId=prof.data?.member_id||null;await load();$('#loginView').classList.add('hidden');$('#appView').classList.remove('hidden');db.channel('olitec-live').on('postgres_changes',{event:'*',schema:'public'},()=>load().catch(()=>{})).subscribe();db.channel('attendance-notify').on('postgres_changes',{event:'INSERT',schema:'public',table:'attendance_events'},payload=>notifyAttendanceChange(payload.new)).subscribe();if('Notification' in window && Notification.permission==='default') Notification.requestPermission()}catch(e){$('#loginError').textContent='Database non pronto: '+e.message;$('#loginError').classList.remove('hidden')}}
+async function start(){try{view='menu';const {data:{user}}=await db.auth.getUser();const prof=await db.from('profiles').select('member_id').eq('id',user.id).single();currentProfileMemberId=prof.data?.member_id||null;await load();$('#loginView').classList.add('hidden');$('#appView').classList.remove('hidden');db.channel('olitec-live').on('postgres_changes',{event:'*',schema:'public'},()=>load().catch(()=>{})).subscribe();db.channel('attendance-notify').on('postgres_changes',{event:'INSERT',schema:'public',table:'attendance_events'},payload=>{console.log('[attendance-notify] realtime event received',payload);notifyAttendanceChange(payload.new)}).subscribe(status=>console.log('[attendance-notify] channel subscribe status:',status));if('Notification' in window && Notification.permission==='default') Notification.requestPermission()}catch(e){$('#loginError').textContent='Database non pronto: '+e.message;$('#loginError').classList.remove('hidden')}}
 </script>
 </body></html>
