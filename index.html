@@ -213,7 +213,7 @@ function renderCalendario(){
   $('#calendarioView').innerHTML=`<div class="top"><div><h1>Calendario</h1><p class="subtitle">Calendario mansioni e pulizie. Accedi con le credenziali amministrative.</p></div></div><section class="card" style="padding:0;overflow:hidden"><iframe src="${CALENDARIO_URL}" style="width:100%;height:78vh;border:0;display:block" title="Calendario mansioni e pulizie"></iframe></section>`;
 }
 function renderProfiloCalendario(){
-  $('#profiloCalendarioView').innerHTML=`<div class="top"><div><h1>Calendario</h1><p class="subtitle">Calendario mansioni e pulizie.</p></div></div><section class="card" style="padding:0;overflow:hidden"><iframe src="${CALENDARIO_URL}" style="width:100%;height:78vh;border:0;display:block" title="Calendario mansioni e pulizie"></iframe></section>`;
+  $('#profiloCalendarioView').innerHTML=`<div class="top"><div><h1>Calendario</h1><p class="subtitle">Calendario mansioni e pulizie (vista sola lettura).</p></div></div><section class="card" style="padding:0;overflow:hidden"><iframe src="${CALENDARIO_URL}?embed=aspirante" style="width:100%;height:78vh;border:0;display:block" title="Calendario mansioni e pulizie"></iframe></section>`;
 }
 function renderProfiloAnagrafica(){
   const m=members.find(x=>x.id===currentProfileMemberId);
