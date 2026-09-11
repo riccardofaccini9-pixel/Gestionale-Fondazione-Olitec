@@ -125,7 +125,10 @@ function inventoryListHTML(category){
   const groups=new Map();
   items.forEach(it=>{ if(!groups.has(it.name)) groups.set(it.name,[]); groups.get(it.name).push(it); });
   groups.forEach(list=>list.sort((a,b)=>sizeRank(a.variant)-sizeRank(b.variant)));
-  const itemRow=(it,category,label)=>`<tr class="${Number(it.quantity)<=0?'out-of-stock':''}"><td>${label}</td><td>${it.quantity}</td><td>${it.unit_cost!=null?'€ '+Number(it.unit_cost).toFixed(2):'—'}</td><td>${escape(it.notes||'—')}</td><td><button class="secondary" onclick="editInventoryItem('${it.id}','${category}')">Modifica</button></td></tr>`;
+  const itemRow=(it,category,label)=>{
+    const photo=it.photo_url?`<button class="photo-button" type="button" onclick="showInventoryPhoto('${it.id}')" aria-label="Apri foto"><img class="avatar" src="${it.photo_url}" alt=""></button>`:`<span class="avatar">—</span>`;
+    return `<tr class="${Number(it.quantity)<=0?'out-of-stock':''}"><td>${photo}</td><td>${label}</td><td>${it.quantity}</td><td>${escape(it.position||'—')}</td><td>${it.unit_cost!=null?'€ '+Number(it.unit_cost).toFixed(2):'—'}</td><td>${escape(it.notes||'—')}</td><td><button class="secondary" onclick="editInventoryItem('${it.id}','${category}')">Modifica</button></td></tr>`;
+  };
   let rows='',gi=0;
   groups.forEach((list,name)=>{
     if(list.length===1){
@@ -135,11 +138,17 @@ function inventoryListHTML(category){
     }
     gi++; const gid='grp'+gi;
     const total=list.reduce((s,it)=>s+Number(it.quantity),0);
-    rows+=`<tr class="group-row ${total<=0?'out-of-stock':''}" onclick="toggleInventoryGroup('${gid}')"><td><span class="expand-arrow" id="arrow_${gid}">▸</span>${escape(name)} <small style="font-weight:400;color:var(--muted)">(${list.length} taglie)</small></td><td>${total}</td><td>—</td><td>—</td><td></td></tr>`;
+    rows+=`<tr class="group-row ${total<=0?'out-of-stock':''}" onclick="toggleInventoryGroup('${gid}')"><td></td><td><span class="expand-arrow" id="arrow_${gid}">▸</span>${escape(name)} <small style="font-weight:400;color:var(--muted)">(${list.length} taglie)</small></td><td>${total}</td><td>—</td><td>—</td><td>—</td><td></td></tr>`;
     list.forEach(it=>{ rows+=itemRow(it,category,`<span class="variant-cell">${escape(it.variant||'—')}</span>`).replace('<tr class="','<tr class="hidden '+gid+' '); });
   });
-  return `<div class="table-wrap"><table><thead><tr><th>Articolo</th><th>Quantità</th><th>Costo unitario</th><th>Note</th><th></th></tr></thead><tbody>${rows||'<tr><td colspan="5" class="empty">Nessun articolo.</td></tr>'}</tbody></table></div>`;
+  return `<div class="table-wrap"><table><thead><tr><th>Foto</th><th>Articolo</th><th>Quantità</th><th>Posizione</th><th>Costo unitario</th><th>Note</th><th></th></tr></thead><tbody>${rows||'<tr><td colspan="7" class="empty">Nessun articolo.</td></tr>'}</tbody></table></div>`;
 }
+window.showInventoryPhoto=id=>{
+  const it=inventoryItems.find(x=>x.id===id); if(!it?.photo_url) return;
+  $('#photoTitle').textContent=it.name+(it.variant?' — '+it.variant:'');
+  $('#fullPhoto').src=it.photo_url;
+  $('#photoDialog').showModal();
+};
 window.toggleInventoryGroup=gid=>{
   const arrow=$('#arrow_'+gid), open=arrow.textContent==='▾';
   arrow.textContent=open?'▸':'▾';
@@ -506,17 +515,26 @@ function inventoryForm(it={},category){
   const meta=inventoryCategoryMeta[category];
   const backRender=()=>renderInventoryCategory(category);
   const showVariant=category==='vestiario';
-  $('#'+meta.viewId).innerHTML=`<div class="top"><div><h1>${it.id?'Modifica':'Nuovo'} articolo</h1></div></div><form class="card" id="itemForm"><div class="form-grid"><label>Nome<input name="name" required value="${escape(it.name||'')}"></label>${showVariant?`<label>Taglia<input name="variant" value="${escape(it.variant||'')}"></label>`:''}<label>Quantità<input name="quantity" type="number" step="1" min="0" required value="${it.quantity??0}"></label><label>Costo unitario (€)<input name="unit_cost" type="number" step="0.01" min="0" value="${it.unit_cost??''}"></label><label class="span-2">Note<input name="notes" value="${escape(it.notes||'')}"></label></div><div class="actions" style="margin-top:20px"><button class="primary">Salva</button><button type="button" class="secondary" id="cancelItem">Annulla</button>${it.id?'<button type="button" class="danger" id="deleteItem">Elimina</button>':''}</div></form>`;
+  $('#'+meta.viewId).innerHTML=`<div class="top"><div><h1>${it.id?'Modifica':'Nuovo'} articolo</h1></div></div><form class="card" id="itemForm"><div class="form-grid"><label>Nome<input name="name" required value="${escape(it.name||'')}"></label>${showVariant?`<label>Taglia<input name="variant" value="${escape(it.variant||'')}"></label>`:''}<label>Quantità<input name="quantity" type="number" step="1" min="0" required value="${it.quantity??0}"></label><label>Posizione<input name="position" value="${escape(it.position||'')}" placeholder="Es. Scaffale 2, Magazzino A"></label><label>Costo unitario (€)<input name="unit_cost" type="number" step="0.01" min="0" value="${it.unit_cost??''}"></label><label>Foto${it.photo_url?' (lascia vuoto per non sostituire)':''}<input name="photoFile" type="file" accept="image/*"></label><label class="span-2">Note<input name="notes" value="${escape(it.notes||'')}"></label></div><div class="actions" style="margin-top:20px"><button class="primary">Salva</button><button type="button" class="secondary" id="cancelItem">Annulla</button>${it.id?'<button type="button" class="danger" id="deleteItem">Elimina</button>':''}</div></form>`;
   $('#cancelItem').onclick=backRender;
   $('#itemForm').onsubmit=async e=>{
     e.preventDefault();
-    const data=Object.fromEntries(new FormData(e.target));
-    data.quantity=Number(data.quantity); data.unit_cost=data.unit_cost===''?null:Number(data.unit_cost); data.notes=data.notes||null;
+    const form=e.target, data=Object.fromEntries(new FormData(form));
+    const photoFile=form.photoFile.files[0]; delete data.photoFile;
+    data.quantity=Number(data.quantity); data.unit_cost=data.unit_cost===''?null:Number(data.unit_cost); data.notes=data.notes||null; data.position=data.position||null;
     data.variant=showVariant?(data.variant||null):null;
     const previousQuantity=it.id?Number(it.quantity):0;
     if(!it.id){ data.category=category; data.structure_id=inventoryStructureId; }
     const r=it.id?await db.from('inventory_items').update(data).eq('id',it.id).select().single():await db.from('inventory_items').insert(data).select().single();
     if(r.error) return flash(r.error.message,true);
+    if(photoFile){
+      const path=`${r.data.id}/${Date.now()}-${photoFile.name}`;
+      const up=await db.storage.from('inventory-photos').upload(path,photoFile,{upsert:true});
+      if(up.error) return flash(up.error.message,true);
+      const {data:pub}=db.storage.from('inventory-photos').getPublicUrl(path);
+      const ph=await db.from('inventory_items').update({photo_url:pub.publicUrl}).eq('id',r.data.id);
+      if(ph.error) return flash(ph.error.message,true);
+    }
     const added=data.quantity-previousQuantity;
     if(added>0){
       const label=data.name+(data.variant?' — '+data.variant:'');
