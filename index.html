@@ -413,14 +413,25 @@ async function resetRegistro(){
 
 const evaluationOutcomeLabel={passato:'Passato',bocciato:'Bocciato'};
 function renderStudyEvaluations(){
-  const rows=externalEvaluations.map(ev=>`<tr><td>${escape(ev.exam_name)}</td><td>${ev.members?escape(ev.members.first_name+' '+ev.members.last_name):'—'}</td><td>${(ev.members?.member_structures||[]).map(x=>escape(x.structures?.name)).join(', ')||'—'}</td><td>${evaluationOutcomeLabel[ev.outcome]||ev.outcome}</td><td>${new Date(ev.created_at).toLocaleString('it-IT')}</td></tr>`).join('');
-  $('#studyEvaluationsView').innerHTML=`<div class="top"><div><h1>Valutazioni</h1><p class="subtitle">Valutazioni esterne al percorso esami, assegnabili per casa.</p></div><button class="primary" id="newEvaluationBtn">+ Aggiungi valutazione</button></div><section class="card"><div class="table-wrap"><table><thead><tr><th>Esame</th><th>Cadetto</th><th>Struttura</th><th>Esito</th><th>Data</th></tr></thead><tbody>${rows||'<tr><td colspan="5" class="empty">Nessuna valutazione.</td></tr>'}</tbody></table></div></section>`;
+  const groups=new Map();
+  externalEvaluations.forEach(ev=>{ if(!groups.has(ev.exam_name)) groups.set(ev.exam_name,[]); groups.get(ev.exam_name).push(ev); });
+  let rows='',gi=0;
+  groups.forEach((list,examName)=>{
+    gi++; const gid='evalgrp'+gi;
+    rows+=`<tr class="group-row" onclick="toggleInventoryGroup('${gid}')"><td><span class="expand-arrow" id="arrow_${gid}">▸</span>${escape(examName)} <small style="font-weight:400;color:var(--muted)">(${list.length} valutazioni)</small></td><td></td><td></td><td></td></tr>`;
+    list.forEach(ev=>{
+      const structureNames=(ev.members?.member_structures||[]).map(x=>escape(x.structures?.name)).join(', ')||'—';
+      rows+=`<tr class="hidden ${gid}"><td><span class="variant-cell">${ev.members?escape(ev.members.first_name+' '+ev.members.last_name):'—'}</span></td><td>${structureNames}</td><td>${evaluationOutcomeLabel[ev.outcome]||ev.outcome}</td><td>${ev.exam_date?italianDate(ev.exam_date):'—'}</td></tr>`;
+    });
+  });
+  $('#studyEvaluationsView').innerHTML=`<div class="top"><div><h1>Valutazioni</h1><p class="subtitle">Valutazioni esterne al percorso esami, assegnabili per casa.</p></div><button class="primary" id="newEvaluationBtn">+ Aggiungi valutazione</button></div><section class="card"><div class="table-wrap"><table><thead><tr><th>Esame / Cadetto</th><th>Struttura</th><th>Esito</th><th>Data esame</th></tr></thead><tbody>${rows||'<tr><td colspan="4" class="empty">Nessuna valutazione.</td></tr>'}</tbody></table></div></section>`;
   $('#newEvaluationBtn').onclick=evaluationForm;
 }
 function evaluationForm(){
   if(!evalStructureId && structures.length) evalStructureId=structures[0].id;
   const structureOptions=structures.map(s=>`<option value="${s.id}" ${s.id===evalStructureId?'selected':''}>${escape(s.name)}</option>`).join('');
-  $('#studyEvaluationsView').innerHTML=`<div class="top"><div><h1>Aggiungi valutazione</h1></div></div><form class="card" id="evaluationForm"><div class="form-grid"><label>Nome esame<input name="exam_name" required></label><label>Esito<select name="outcome" required><option value="passato">Passato</option><option value="bocciato">Bocciato</option></select></label><label class="span-2">Struttura<select id="evalStructure">${structureOptions}</select></label><div class="span-2"><b>Persone</b><div id="evalPeopleBox"></div></div></div><div class="actions" style="margin-top:20px"><button class="primary">Salva valutazione</button><button type="button" class="secondary" id="cancelEvaluation">Annulla</button></div></form>`;
+  const today=new Date().toISOString().slice(0,10);
+  $('#studyEvaluationsView').innerHTML=`<div class="top"><div><h1>Aggiungi valutazione</h1></div></div><form class="card" id="evaluationForm"><div class="form-grid"><label>Nome esame<input name="exam_name" required></label><label>Esito<select name="outcome" required><option value="passato">Passato</option><option value="bocciato">Bocciato</option></select></label><label>Data esame<input type="date" name="exam_date" value="${today}"></label><label class="span-2">Struttura<select id="evalStructure">${structureOptions}</select></label><div class="span-2"><b>Persone</b><div id="evalPeopleBox"></div></div></div><div class="actions" style="margin-top:20px"><button class="primary">Salva valutazione</button><button type="button" class="secondary" id="cancelEvaluation">Annulla</button></div></form>`;
   const refreshPeople=()=>{
     const people=membersForHouses([$('#evalStructure').value]);
     $('#evalPeopleBox').innerHTML=memberChoices('evalPeople',people);
@@ -431,10 +442,10 @@ function evaluationForm(){
   $('#cancelEvaluation').onclick=renderStudyEvaluations;
   $('#evaluationForm').onsubmit=async e=>{
     e.preventDefault();
-    const form=e.target, examName=form.exam_name.value.trim(), outcome=form.outcome.value;
+    const form=e.target, examName=form.exam_name.value.trim(), outcome=form.outcome.value, examDate=form.exam_date.value||null;
     const memberIds=[...$('#evalPeople').querySelectorAll('input:checked')].map(x=>x.value).filter(v=>v!=='__all__');
     if(!memberIds.length) return flash('Seleziona almeno una persona.',true);
-    const rows=memberIds.map(member_id=>({exam_name:examName,outcome,member_id}));
+    const rows=memberIds.map(member_id=>({exam_name:examName,outcome,exam_date:examDate,member_id}));
     const r=await db.from('external_evaluations').insert(rows);
     if(r.error) return flash(r.error.message,true);
     flash('Valutazione salvata.'); await load();
