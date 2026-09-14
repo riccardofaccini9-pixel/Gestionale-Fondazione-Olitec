@@ -13,7 +13,7 @@ dialog{border:0;border-radius:14px;padding:0;width:min(560px,calc(100vw - 28px))
 @media(max-width:760px){.app{display:block}aside{padding:13px 16px;position:sticky;top:0;z-index:3;flex-direction:row;align-items:center}.brand small{display:none}.brand strong{font-size:1.2rem}nav{display:flex;overflow:auto;flex:1}nav button{white-space:nowrap}.logout{margin:0}main{padding:24px 16px}.top{display:block}.top .primary{margin-top:14px;width:100%}.form-grid,.two{grid-template-columns:1fr}.span-2{grid-column:span 1}}
 </style></head><body>
 <section class="login" id="loginView"><form class="login-card" id="loginForm"><h1>Olitec</h1><p>Accesso alla gestione condivisa.</p><div id="loginError" class="notice hidden"></div><label>Username<input id="username" required autocomplete="username"></label><label>Password<input id="password" type="password" required autocomplete="current-password"></label><button class="primary" type="submit">Accedi</button><p class="footer">Primo accesso: admin / admin</p></form></section>
-<section class="app hidden" id="appView"><aside><div class="brand"><small>Fondazione</small><strong>Olitec</strong></div><nav id="nav"></nav><button class="secondary logout" id="logout">Esci</button></aside><main><div id="status"></div><section id="menuView" class="view"></section><section id="membersView" class="view hidden"></section><section id="structuresView" class="view hidden"></section><section id="gradesView" class="view hidden"></section><section id="groupsView" class="view hidden"></section><section id="notificationsView" class="view hidden"></section><section id="inboxView" class="view hidden"></section><section id="inventoryView" class="view hidden"></section><section id="inventoryFoodView" class="view hidden"></section><section id="inventoryEquipmentView" class="view hidden"></section><section id="inventoryClothingView" class="view hidden"></section><section id="inventoryConsumablesView" class="view hidden"></section><section id="requestsView" class="view hidden"></section><section id="rulesView" class="view hidden"></section><section id="profiloView" class="view hidden"></section><section id="profiloAnagraficaView" class="view hidden"></section><section id="profiloRichiesteView" class="view hidden"></section><section id="profiloEsamiView" class="view hidden"></section><section id="profiloMaterialeView" class="view hidden"></section><section id="studyView" class="view hidden"></section><section id="studyMaterialsView" class="view hidden"></section><section id="studyExamsView" class="view hidden"></section><section id="studyRegistroView" class="view hidden"></section><section id="presenzaView" class="view hidden"></section><section id="presenzaStoricoView" class="view hidden"></section><section id="calendarioView" class="view hidden"></section><section id="profiloCalendarioView" class="view hidden"></section></main></section>
+<section class="app hidden" id="appView"><aside><div class="brand"><small>Fondazione</small><strong>Olitec</strong></div><nav id="nav"></nav><button class="secondary logout" id="logout">Esci</button></aside><main><div id="status"></div><section id="menuView" class="view"></section><section id="membersView" class="view hidden"></section><section id="structuresView" class="view hidden"></section><section id="gradesView" class="view hidden"></section><section id="groupsView" class="view hidden"></section><section id="notificationsView" class="view hidden"></section><section id="inboxView" class="view hidden"></section><section id="inventoryView" class="view hidden"></section><section id="inventoryFoodView" class="view hidden"></section><section id="inventoryEquipmentView" class="view hidden"></section><section id="inventoryClothingView" class="view hidden"></section><section id="inventoryConsumablesView" class="view hidden"></section><section id="requestsView" class="view hidden"></section><section id="rulesView" class="view hidden"></section><section id="profiloView" class="view hidden"></section><section id="profiloAnagraficaView" class="view hidden"></section><section id="profiloRichiesteView" class="view hidden"></section><section id="profiloEsamiView" class="view hidden"></section><section id="profiloMaterialeView" class="view hidden"></section><section id="studyView" class="view hidden"></section><section id="studyMaterialsView" class="view hidden"></section><section id="studyExamsView" class="view hidden"></section><section id="studyRegistroView" class="view hidden"></section><section id="studyEvaluationsView" class="view hidden"></section><section id="presenzaView" class="view hidden"></section><section id="presenzaStoricoView" class="view hidden"></section><section id="calendarioView" class="view hidden"></section><section id="profiloCalendarioView" class="view hidden"></section></main></section>
 <dialog id="detailDialog"><div class="modal"><div class="modal-head"><span></span><button class="close" type="button" id="closeDetail" aria-label="Chiudi">×</button></div><div id="detailContent"></div><div class="actions" style="margin-top:16px"><button class="secondary" type="button" id="editFromDetail">Modifica anagrafica</button></div></div></dialog>
 <dialog id="photoDialog"><div class="modal"><div class="modal-head"><h2 id="photoTitle">Foto profilo</h2><button class="close" type="button" id="closePhoto" aria-label="Chiudi">×</button></div><img id="fullPhoto" alt="Foto profilo" style="width:100%;max-height:70vh;object-fit:contain;border-radius:10px"></div></dialog>
 <dialog id="documentDialog" style="width:min(900px,calc(100vw - 28px))"><div class="modal"><div class="modal-head"><h2 id="documentTitle">Documento</h2><button class="close" type="button" id="closeDocument" aria-label="Chiudi">×</button></div><img id="documentImage" alt="Documento" style="width:100%;max-height:75vh;object-fit:contain;border-radius:10px;display:none"><iframe id="documentFrame" style="width:100%;height:75vh;border:0;border-radius:10px" title="Documento"></iframe></div></dialog>
@@ -21,7 +21,7 @@ dialog{border:0;border-radius:14px;padding:0;width:min(560px,calc(100vw - 28px))
 const SUPABASE_URL='https://xiqihzndgvhmaygsrcdh.supabase.co';
 const SUPABASE_KEY='sb_publishable_AeGBs64qTcLzvZppepy8qg_7YOdivrE';
 const db=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
-const $=s=>document.querySelector(s); let structures=[],grades=[],members=[],groups=[],notifications=[],inventoryItems=[],itemRequests=[],assignmentRules=[],inventoryMovements=[],exams=[],studyMaterials=[],examRecords=[],examRequests=[],view='menu',inventoryStructureId=null,currentProfileMemberId=null,registroStructureId=null,attendanceEvents=[],presenzaStructureId=null,presenzaStoricoStructureId=null;
+const $=s=>document.querySelector(s); let structures=[],grades=[],members=[],groups=[],notifications=[],inventoryItems=[],itemRequests=[],assignmentRules=[],inventoryMovements=[],exams=[],studyMaterials=[],examRecords=[],examRequests=[],view='menu',inventoryStructureId=null,currentProfileMemberId=null,registroStructureId=null,attendanceEvents=[],presenzaStructureId=null,presenzaStoricoStructureId=null,externalEvaluations=[],evalStructureId=null;
 const escape=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const initials=m=>((m.first_name||'?')[0]+(m.last_name||'?')[0]).toUpperCase();
 const italianDate=d=>d?new Date(d+'T00:00:00').toLocaleDateString('it-IT'):'—';
@@ -29,7 +29,7 @@ function duration(date){if(!date) return '—';const start=new Date(date+'T00:00
 function flash(message,error=false){$('#status').innerHTML=`<div class="notice ${error?'':'ok'}">${escape(message)}</div>`;setTimeout(()=>$('#status').innerHTML='',4500)}
 
 async function load(){
-  const [s,g,m,gr,nt,inv,req,rules,mov,ex,mat,rec,exreq,att]=await Promise.all([
+  const [s,g,m,gr,nt,inv,req,rules,mov,ex,mat,rec,exreq,att,ev]=await Promise.all([
     db.from('structures').select('*').order('name'),
     db.from('grades').select('*').order('name'),
     db.from('members').select('*,grades(name,image_url),member_structures(structures(id,name))').order('last_name'),
@@ -43,10 +43,11 @@ async function load(){
     db.from('study_materials').select('*').order('created_at'),
     db.from('exam_records').select('*'),
     db.from('exam_requests').select('*,members(first_name,last_name),exams(name)').order('created_at',{ascending:false}),
-    db.from('attendance_events').select('*').order('created_at',{ascending:false})
+    db.from('attendance_events').select('*').order('created_at',{ascending:false}),
+    db.from('external_evaluations').select('*,members(first_name,last_name,member_structures(structures(id,name)))').order('created_at',{ascending:false})
   ]);
-  for(const r of[s,g,m,gr,nt,inv,req,rules,mov,ex,mat,rec,exreq,att]) if(r.error) throw r.error;
-  structures=s.data; grades=g.data; members=m.data; groups=gr.data; notifications=nt.data; inventoryItems=inv.data; itemRequests=req.data; assignmentRules=rules.data; inventoryMovements=mov.data; exams=ex.data; studyMaterials=mat.data; examRecords=rec.data; examRequests=exreq.data; attendanceEvents=att.data;
+  for(const r of[s,g,m,gr,nt,inv,req,rules,mov,ex,mat,rec,exreq,att,ev]) if(r.error) throw r.error;
+  structures=s.data; grades=g.data; members=m.data; groups=gr.data; notifications=nt.data; inventoryItems=inv.data; itemRequests=req.data; assignmentRules=rules.data; inventoryMovements=mov.data; exams=ex.data; studyMaterials=mat.data; examRecords=rec.data; examRequests=exreq.data; attendanceEvents=att.data; externalEvaluations=ev.data;
   render();
 }
 
@@ -72,10 +73,11 @@ const navTree={
   profiloEsami:[['profilo','Profilo']],
   profiloMateriale:[['profilo','Profilo']],
   profiloCalendario:[['profilo','Profilo']],
-  study:[['menu','Menu'],['studyMaterials','Materiale'],['studyExams','Esami'],['studyRegistro','Registro']],
+  study:[['menu','Menu'],['studyMaterials','Materiale'],['studyExams','Esami'],['studyRegistro','Registro'],['studyEvaluations','Valutazioni']],
   studyMaterials:[['study','Studio']],
   studyExams:[['study','Studio']],
   studyRegistro:[['study','Studio']],
+  studyEvaluations:[['study','Studio']],
   presenza:[['menu','Menu'],['presenzaStorico','Storico']],
   presenzaStorico:[['presenza','Presenza']]
 };
@@ -85,7 +87,7 @@ function render(){
   $('#nav').querySelectorAll('button').forEach(b=>b.onclick=()=>{view=b.dataset.view;render()});
   document.querySelectorAll('.view').forEach(x=>x.classList.add('hidden'));
   $('#'+view+'View').classList.remove('hidden');
-  ({menu:renderMenu,members:renderMembers,structures:renderStructures,grades:renderGrades,groups:renderGroups,notifications:renderNotifications,inbox:renderInbox,inventory:renderInventory,inventoryFood:renderInventoryFood,inventoryEquipment:renderInventoryEquipment,inventoryClothing:renderInventoryClothing,inventoryConsumables:renderInventoryConsumables,requests:renderRequests,rules:renderRules,profilo:renderProfilo,profiloAnagrafica:renderProfiloAnagrafica,profiloRichieste:renderProfiloRichieste,profiloEsami:renderProfiloEsami,profiloMateriale:renderProfiloMateriale,study:renderStudy,studyMaterials:renderStudyMaterials,studyExams:renderStudyExams,studyRegistro:renderStudyRegistro,presenza:renderPresenza,presenzaStorico:renderPresenzaStorico,calendario:renderCalendario,profiloCalendario:renderProfiloCalendario})[view]();
+  ({menu:renderMenu,members:renderMembers,structures:renderStructures,grades:renderGrades,groups:renderGroups,notifications:renderNotifications,inbox:renderInbox,inventory:renderInventory,inventoryFood:renderInventoryFood,inventoryEquipment:renderInventoryEquipment,inventoryClothing:renderInventoryClothing,inventoryConsumables:renderInventoryConsumables,requests:renderRequests,rules:renderRules,profilo:renderProfilo,profiloAnagrafica:renderProfiloAnagrafica,profiloRichieste:renderProfiloRichieste,profiloEsami:renderProfiloEsami,profiloMateriale:renderProfiloMateriale,study:renderStudy,studyMaterials:renderStudyMaterials,studyExams:renderStudyExams,studyRegistro:renderStudyRegistro,studyEvaluations:renderStudyEvaluations,presenza:renderPresenza,presenzaStorico:renderPresenzaStorico,calendario:renderCalendario,profiloCalendario:renderProfiloCalendario})[view]();
 }
 
 function renderMenu(){
@@ -258,7 +260,7 @@ function currentExamForMember(memberId){
 const examRequestStatusLabel={pending:'In attesa',approved:'Approvata',rejected:'Rifiutata',passed:'Superato',failed:'Bocciato'};
 
 function renderStudy(){
-  $('#studyView').innerHTML=`<div class="top"><div><h1>Studio</h1><p class="subtitle">Materiale di studio, esami e registro dei cadetti.</p></div></div><div class="menu-grid"><button class="menu-card" data-view="studyMaterials"><b>Materiale</b><span>Esami del percorso e relativi link/documenti.</span></button><button class="menu-card" data-view="studyExams"><b>Esami</b><span>Richieste d'esame e approvazioni.</span></button><button class="menu-card" data-view="studyRegistro"><b>Registro</b><span>Esiti esami di tutti i cadetti.</span></button></div>`;
+  $('#studyView').innerHTML=`<div class="top"><div><h1>Studio</h1><p class="subtitle">Materiale di studio, esami e registro dei cadetti.</p></div></div><div class="menu-grid"><button class="menu-card" data-view="studyMaterials"><b>Materiale</b><span>Esami del percorso e relativi link/documenti.</span></button><button class="menu-card" data-view="studyExams"><b>Esami</b><span>Richieste d'esame e approvazioni.</span></button><button class="menu-card" data-view="studyRegistro"><b>Registro</b><span>Esiti esami di tutti i cadetti.</span></button><button class="menu-card" data-view="studyEvaluations"><b>Valutazioni</b><span>Valutazioni esterne al percorso, assegnabili per casa.</span></button></div>`;
   $('#studyView').querySelectorAll('[data-view]').forEach(b=>b.onclick=()=>{view=b.dataset.view;render()});
 }
 function renderStudyMaterials(){
@@ -407,6 +409,36 @@ async function resetRegistro(){
   const r3=await db.from('members').update({study_excluded:false}).neq('id','00000000-0000-0000-0000-000000000000');
   if(r1.error||r2.error||r3.error) return flash((r1.error||r2.error||r3.error).message,true);
   flash('Registro e progressi azzerati.'); await load();
+}
+
+const evaluationOutcomeLabel={passato:'Passato',bocciato:'Bocciato'};
+function renderStudyEvaluations(){
+  const rows=externalEvaluations.map(ev=>`<tr><td>${escape(ev.exam_name)}</td><td>${ev.members?escape(ev.members.first_name+' '+ev.members.last_name):'—'}</td><td>${(ev.members?.member_structures||[]).map(x=>escape(x.structures?.name)).join(', ')||'—'}</td><td>${evaluationOutcomeLabel[ev.outcome]||ev.outcome}</td><td>${new Date(ev.created_at).toLocaleString('it-IT')}</td></tr>`).join('');
+  $('#studyEvaluationsView').innerHTML=`<div class="top"><div><h1>Valutazioni</h1><p class="subtitle">Valutazioni esterne al percorso esami, assegnabili per casa.</p></div><button class="primary" id="newEvaluationBtn">+ Aggiungi valutazione</button></div><section class="card"><div class="table-wrap"><table><thead><tr><th>Esame</th><th>Cadetto</th><th>Struttura</th><th>Esito</th><th>Data</th></tr></thead><tbody>${rows||'<tr><td colspan="5" class="empty">Nessuna valutazione.</td></tr>'}</tbody></table></div></section>`;
+  $('#newEvaluationBtn').onclick=evaluationForm;
+}
+function evaluationForm(){
+  if(!evalStructureId && structures.length) evalStructureId=structures[0].id;
+  const structureOptions=structures.map(s=>`<option value="${s.id}" ${s.id===evalStructureId?'selected':''}>${escape(s.name)}</option>`).join('');
+  $('#studyEvaluationsView').innerHTML=`<div class="top"><div><h1>Aggiungi valutazione</h1></div></div><form class="card" id="evaluationForm"><div class="form-grid"><label>Nome esame<input name="exam_name" required></label><label>Esito<select name="outcome" required><option value="passato">Passato</option><option value="bocciato">Bocciato</option></select></label><label class="span-2">Struttura<select id="evalStructure">${structureOptions}</select></label><div class="span-2"><b>Persone</b><div id="evalPeopleBox"></div></div></div><div class="actions" style="margin-top:20px"><button class="primary">Salva valutazione</button><button type="button" class="secondary" id="cancelEvaluation">Annulla</button></div></form>`;
+  const refreshPeople=()=>{
+    const people=membersForHouses([$('#evalStructure').value]);
+    $('#evalPeopleBox').innerHTML=memberChoices('evalPeople',people);
+    bindAllToggle('evalPeople');
+  };
+  refreshPeople();
+  $('#evalStructure').onchange=()=>{evalStructureId=$('#evalStructure').value;refreshPeople();};
+  $('#cancelEvaluation').onclick=renderStudyEvaluations;
+  $('#evaluationForm').onsubmit=async e=>{
+    e.preventDefault();
+    const form=e.target, examName=form.exam_name.value.trim(), outcome=form.outcome.value;
+    const memberIds=[...$('#evalPeople').querySelectorAll('input:checked')].map(x=>x.value).filter(v=>v!=='__all__');
+    if(!memberIds.length) return flash('Seleziona almeno una persona.',true);
+    const rows=memberIds.map(member_id=>({exam_name:examName,outcome,member_id}));
+    const r=await db.from('external_evaluations').insert(rows);
+    if(r.error) return flash(r.error.message,true);
+    flash('Valutazione salvata.'); await load();
+  };
 }
 
 function currentAttendance(memberId){
