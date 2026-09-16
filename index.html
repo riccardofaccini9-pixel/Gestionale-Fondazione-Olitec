@@ -13,15 +13,15 @@ dialog{border:0;border-radius:14px;padding:0;width:min(560px,calc(100vw - 28px))
 @media(max-width:760px){.app{display:block}aside{padding:13px 16px;position:sticky;top:0;z-index:3;flex-direction:row;align-items:center}.brand small{display:none}.brand strong{font-size:1.2rem}nav{display:flex;overflow:auto;flex:1}nav button{white-space:nowrap}.logout{margin:0}main{padding:24px 16px}.top{display:block}.top .primary{margin-top:14px;width:100%}.form-grid,.two{grid-template-columns:1fr}.span-2{grid-column:span 1}}
 </style></head><body>
 <section class="login" id="loginView"><form class="login-card" id="loginForm"><h1>Olitec</h1><p>Accesso alla gestione condivisa.</p><div id="loginError" class="notice hidden"></div><label>Username<input id="username" required autocomplete="username"></label><label>Password<input id="password" type="password" required autocomplete="current-password"></label><button class="primary" type="submit">Accedi</button><p class="footer">Primo accesso: admin / admin</p></form></section>
-<section class="app hidden" id="appView"><aside><div class="brand"><small>Fondazione</small><strong>Olitec</strong></div><nav id="nav"></nav><button class="secondary logout" id="logout">Esci</button></aside><main><div id="status"></div><section id="menuView" class="view"></section><section id="membersView" class="view hidden"></section><section id="structuresView" class="view hidden"></section><section id="gradesView" class="view hidden"></section><section id="groupsView" class="view hidden"></section><section id="notificationsView" class="view hidden"></section><section id="inboxView" class="view hidden"></section><section id="inventoryView" class="view hidden"></section><section id="inventoryFoodView" class="view hidden"></section><section id="inventoryEquipmentView" class="view hidden"></section><section id="inventoryClothingView" class="view hidden"></section><section id="inventoryConsumablesView" class="view hidden"></section><section id="requestsView" class="view hidden"></section><section id="rulesView" class="view hidden"></section><section id="profiloView" class="view hidden"></section><section id="profiloAnagraficaView" class="view hidden"></section><section id="profiloRichiesteView" class="view hidden"></section><section id="profiloEsamiView" class="view hidden"></section><section id="profiloMaterialeView" class="view hidden"></section><section id="studyView" class="view hidden"></section><section id="studyMaterialsView" class="view hidden"></section><section id="studyExamsView" class="view hidden"></section><section id="studyRegistroView" class="view hidden"></section><section id="studyEvaluationsView" class="view hidden"></section><section id="presenzaView" class="view hidden"></section><section id="presenzaStoricoView" class="view hidden"></section><section id="calendarioView" class="view hidden"></section><section id="profiloCalendarioView" class="view hidden"></section></main></section>
-<dialog id="detailDialog"><div class="modal"><div class="modal-head"><span></span><button class="close" type="button" id="closeDetail" aria-label="Chiudi">×</button></div><div id="detailContent"></div><div class="actions" style="margin-top:16px"><button class="secondary" type="button" id="editFromDetail">Modifica anagrafica</button></div></div></dialog>
+<section class="app hidden" id="appView"><aside><div class="brand"><small>Fondazione</small><strong>Olitec</strong></div><nav id="nav"></nav><button class="secondary logout" id="logout">Esci</button></aside><main><div id="status"></div><section id="menuView" class="view"></section><section id="membersView" class="view hidden"></section><section id="structuresView" class="view hidden"></section><section id="gradesView" class="view hidden"></section><section id="groupsView" class="view hidden"></section><section id="notificationsView" class="view hidden"></section><section id="inboxView" class="view hidden"></section><section id="inventoryView" class="view hidden"></section><section id="inventoryFoodView" class="view hidden"></section><section id="inventoryEquipmentView" class="view hidden"></section><section id="inventoryClothingView" class="view hidden"></section><section id="inventoryConsumablesView" class="view hidden"></section><section id="requestsView" class="view hidden"></section><section id="rulesView" class="view hidden"></section><section id="profiloView" class="view hidden"></section><section id="profiloAnagraficaView" class="view hidden"></section><section id="profiloRichiesteView" class="view hidden"></section><section id="profiloEsamiView" class="view hidden"></section><section id="profiloMaterialeView" class="view hidden"></section><section id="studyView" class="view hidden"></section><section id="studyMaterialsView" class="view hidden"></section><section id="studyExamsView" class="view hidden"></section><section id="studyRegistroView" class="view hidden"></section><section id="studyEvaluationsView" class="view hidden"></section><section id="presenzaView" class="view hidden"></section><section id="presenzaStoricoView" class="view hidden"></section><section id="calendarioView" class="view hidden"></section><section id="profiloCalendarioView" class="view hidden"></section><section id="memberProfileView" class="view hidden"></section><section id="memberProfileAnagraficaView" class="view hidden"></section><section id="memberProfileRichiesteView" class="view hidden"></section><section id="memberProfileEsamiView" class="view hidden"></section><section id="memberProfileMaterialeView" class="view hidden"></section></main></section>
+<dialog id="detailDialog"><div class="modal"><div class="modal-head"><span></span><button class="close" type="button" id="closeDetail" aria-label="Chiudi">×</button></div><div id="detailContent"></div><div class="actions" style="margin-top:16px"><button class="secondary" type="button" id="editFromDetail">Modifica anagrafica</button><button class="secondary" type="button" id="goToProfileFromDetail">Vai al profilo</button></div></div></dialog>
 <dialog id="photoDialog"><div class="modal"><div class="modal-head"><h2 id="photoTitle">Foto profilo</h2><button class="close" type="button" id="closePhoto" aria-label="Chiudi">×</button></div><img id="fullPhoto" alt="Foto profilo" style="width:100%;max-height:70vh;object-fit:contain;border-radius:10px"></div></dialog>
 <dialog id="documentDialog" style="width:min(900px,calc(100vw - 28px))"><div class="modal"><div class="modal-head"><h2 id="documentTitle">Documento</h2><button class="close" type="button" id="closeDocument" aria-label="Chiudi">×</button></div><img id="documentImage" alt="Documento" style="width:100%;max-height:75vh;object-fit:contain;border-radius:10px;display:none"><iframe id="documentFrame" style="width:100%;height:75vh;border:0;border-radius:10px" title="Documento"></iframe></div></dialog>
 <script>
 const SUPABASE_URL='https://xiqihzndgvhmaygsrcdh.supabase.co';
 const SUPABASE_KEY='sb_publishable_AeGBs64qTcLzvZppepy8qg_7YOdivrE';
 const db=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
-const $=s=>document.querySelector(s); let structures=[],grades=[],members=[],groups=[],notifications=[],inventoryItems=[],itemRequests=[],assignmentRules=[],inventoryMovements=[],exams=[],studyMaterials=[],examRecords=[],examRequests=[],view='menu',inventoryStructureId=null,currentProfileMemberId=null,registroStructureId=null,attendanceEvents=[],presenzaStructureId=null,presenzaStoricoStructureId=null,externalEvaluations=[],evalStructureId=null;
+const $=s=>document.querySelector(s); let structures=[],grades=[],members=[],groups=[],notifications=[],inventoryItems=[],itemRequests=[],assignmentRules=[],inventoryMovements=[],exams=[],studyMaterials=[],examRecords=[],examRequests=[],view='menu',inventoryStructureId=null,currentProfileMemberId=null,registroStructureId=null,attendanceEvents=[],presenzaStructureId=null,presenzaStoricoStructureId=null,externalEvaluations=[],evalStructureId=null,viewedMemberId=null;
 const escape=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const initials=m=>((m.first_name||'?')[0]+(m.last_name||'?')[0]).toUpperCase();
 const italianDate=d=>d?new Date(d+'T00:00:00').toLocaleDateString('it-IT'):'—';
@@ -73,6 +73,11 @@ const navTree={
   profiloEsami:[['profilo','Profilo']],
   profiloMateriale:[['profilo','Profilo']],
   profiloCalendario:[['profilo','Profilo']],
+  memberProfile:[['members','Anagrafiche'],['memberProfileAnagrafica','Anagrafica'],['memberProfileRichieste','Richieste'],['memberProfileEsami','Esami'],['memberProfileMateriale','Materiale']],
+  memberProfileAnagrafica:[['memberProfile','Profilo']],
+  memberProfileRichieste:[['memberProfile','Profilo']],
+  memberProfileEsami:[['memberProfile','Profilo']],
+  memberProfileMateriale:[['memberProfile','Profilo']],
   study:[['menu','Menu'],['studyMaterials','Materiale'],['studyExams','Esami'],['studyRegistro','Registro'],['studyEvaluations','Valutazioni']],
   studyMaterials:[['study','Studio']],
   studyExams:[['study','Studio']],
@@ -87,7 +92,7 @@ function render(){
   $('#nav').querySelectorAll('button').forEach(b=>b.onclick=()=>{view=b.dataset.view;render()});
   document.querySelectorAll('.view').forEach(x=>x.classList.add('hidden'));
   $('#'+view+'View').classList.remove('hidden');
-  ({menu:renderMenu,members:renderMembers,structures:renderStructures,grades:renderGrades,groups:renderGroups,notifications:renderNotifications,inbox:renderInbox,inventory:renderInventory,inventoryFood:renderInventoryFood,inventoryEquipment:renderInventoryEquipment,inventoryClothing:renderInventoryClothing,inventoryConsumables:renderInventoryConsumables,requests:renderRequests,rules:renderRules,profilo:renderProfilo,profiloAnagrafica:renderProfiloAnagrafica,profiloRichieste:renderProfiloRichieste,profiloEsami:renderProfiloEsami,profiloMateriale:renderProfiloMateriale,study:renderStudy,studyMaterials:renderStudyMaterials,studyExams:renderStudyExams,studyRegistro:renderStudyRegistro,studyEvaluations:renderStudyEvaluations,presenza:renderPresenza,presenzaStorico:renderPresenzaStorico,calendario:renderCalendario,profiloCalendario:renderProfiloCalendario})[view]();
+  ({menu:renderMenu,members:renderMembers,structures:renderStructures,grades:renderGrades,groups:renderGroups,notifications:renderNotifications,inbox:renderInbox,inventory:renderInventory,inventoryFood:renderInventoryFood,inventoryEquipment:renderInventoryEquipment,inventoryClothing:renderInventoryClothing,inventoryConsumables:renderInventoryConsumables,requests:renderRequests,rules:renderRules,profilo:renderProfilo,profiloAnagrafica:renderProfiloAnagrafica,profiloRichieste:renderProfiloRichieste,profiloEsami:renderProfiloEsami,profiloMateriale:renderProfiloMateriale,study:renderStudy,studyMaterials:renderStudyMaterials,studyExams:renderStudyExams,studyRegistro:renderStudyRegistro,studyEvaluations:renderStudyEvaluations,presenza:renderPresenza,presenzaStorico:renderPresenzaStorico,calendario:renderCalendario,profiloCalendario:renderProfiloCalendario,memberProfile:renderMemberProfile,memberProfileAnagrafica:renderMemberProfileAnagrafica,memberProfileRichieste:renderMemberProfileRichieste,memberProfileEsami:renderMemberProfileEsami,memberProfileMateriale:renderMemberProfileMateriale})[view]();
 }
 
 function renderMenu(){
@@ -540,6 +545,52 @@ function renderProfiloMateriale(){
   $('#profiloMaterialeView').innerHTML=`<div class="top"><div><h1>Materiale</h1><p class="subtitle">Materiale sbloccato per l'esame corrente: <b>${escape(current.name)}</b></p></div></div><section class="card"><div class="list">${rows}</div></section>`;
 }
 
+function renderMemberProfile(){
+  const m=members.find(x=>x.id===viewedMemberId);
+  const avatar=m?.photo_url?`<img class="detail-photo" src="${m.photo_url}" alt="">`:`<span class="detail-photo">${m?initials(m):'?'}</span>`;
+  $('#memberProfileView').innerHTML=`<div class="top"><div><h1>Profilo</h1><p class="subtitle">${m?escape(m.first_name)+' '+escape(m.last_name):'—'} · sola visualizzazione</p></div></div><div class="menu-grid"><button class="menu-card" data-view="memberProfileAnagrafica"><b>Anagrafica</b><span>Scheda personale (sola visualizzazione).</span></button><button class="menu-card" data-view="memberProfileRichieste"><b>Richieste</b><span>Invia una richiesta di materiale per conto suo.</span></button><button class="menu-card" data-view="memberProfileEsami"><b>Esami</b><span>Esame corrente e storico (sola visualizzazione).</span></button><button class="menu-card" data-view="memberProfileMateriale"><b>Materiale</b><span>Materiale sbloccato (sola visualizzazione).</span></button></div>`;
+  $('#memberProfileView').querySelectorAll('[data-view]').forEach(b=>b.onclick=()=>{view=b.dataset.view;render()});
+}
+function renderMemberProfileAnagrafica(){
+  const m=members.find(x=>x.id===viewedMemberId);
+  if(!m){ $('#memberProfileAnagraficaView').innerHTML=`<div class="top"><div><h1>Anagrafica</h1></div></div><p class="empty">Anagrafica non trovata.</p>`; return; }
+  $('#memberProfileAnagraficaView').innerHTML=`<div class="top"><div><h1>Anagrafica</h1><p class="subtitle">Sola visualizzazione.</p></div></div><section class="card" style="padding:24px">${memberDetailHTML(m)}</section>`;
+}
+function renderMemberProfileRichieste(){
+  $('#memberProfileRichiesteView').innerHTML=`<div class="top"><div><h1>Richieste</h1><p class="subtitle">Invia una richiesta di materiale per questo cadetto.</p></div></div><section class="card"><form id="memberRequestForm"><div class="form-grid"><label>Struttura<select id="mreqStructure" required>${structures.map(s=>`<option value="${s.id}">${escape(s.name)}</option>`).join('')}</select></label><label>Categoria<select id="mreqCategory" required>${Object.entries(inventoryCategoryMeta).map(([key,meta])=>`<option value="${key}">${escape(meta.title)}</option>`).join('')}</select></label><label class="span-2">Articolo<select id="mreqItem" required></select></label><label>Quantità<input id="mreqQuantity" type="number" min="1" step="1" required value="1"></label></div><div class="actions" style="margin-top:16px"><button class="primary">Invia richiesta</button></div></form></section>`;
+  const refreshItemOptions=()=>{
+    const structureId=$('#mreqStructure').value, category=$('#mreqCategory').value;
+    const options=inventoryItems.filter(it=>it.structure_id===structureId && it.category===category).map(it=>`<option value="${it.id}">${escape(it.name)}${it.variant?' — '+escape(it.variant):''} (disp. ${it.quantity})</option>`).join('');
+    $('#mreqItem').innerHTML=options||'<option value="">Nessun articolo disponibile</option>';
+  };
+  const member=members.find(m=>m.id===viewedMemberId);
+  const firstStructureId=member?.member_structures?.[0]?.structures?.id;
+  if(firstStructureId) $('#mreqStructure').value=firstStructureId;
+  refreshItemOptions();
+  $('#mreqStructure').onchange=refreshItemOptions;
+  $('#mreqCategory').onchange=refreshItemOptions;
+  $('#memberRequestForm').onsubmit=e=>{
+    e.preventDefault();
+    submitItemRequest(viewedMemberId,$('#mreqItem').value,Number($('#mreqQuantity').value));
+  };
+}
+function renderMemberProfileEsami(){
+  const m=members.find(x=>x.id===viewedMemberId);
+  if(m?.study_excluded){ $('#memberProfileEsamiView').innerHTML=`<div class="top"><div><h1>Esami</h1></div></div><section class="card"><p class="empty">Questo cadetto è stato escluso dal percorso di studio.</p></section>`; return; }
+  const current=currentExamForMember(viewedMemberId);
+  const memberRequests=examRequests.filter(r=>r.member_id===viewedMemberId);
+  const rows=memberRequests.map(r=>`<tr><td>${escape(r.exams?.name||'—')}</td><td>${new Date(r.created_at).toLocaleString('it-IT')}</td><td>${r.scheduled_date?italianDate(r.scheduled_date):'—'}</td><td>${examRequestStatusLabel[r.status]||r.status}</td></tr>`).join('');
+  $('#memberProfileEsamiView').innerHTML=`<div class="top"><div><h1>Esami</h1><p class="subtitle">${current?`Esame corrente: <b>${escape(current.name)}</b>`:'Ha completato tutti gli esami disponibili.'} · sola visualizzazione</p></div></div><section class="card"><h2 style="margin-top:0">Richieste d'esame</h2><div class="table-wrap"><table><thead><tr><th>Esame</th><th>Data richiesta</th><th>Data esame</th><th>Stato</th></tr></thead><tbody>${rows||'<tr><td colspan="4" class="empty">Nessuna richiesta.</td></tr>'}</tbody></table></div></section>`;
+}
+function renderMemberProfileMateriale(){
+  const m=members.find(x=>x.id===viewedMemberId);
+  if(m?.study_excluded){ $('#memberProfileMaterialeView').innerHTML=`<div class="top"><div><h1>Materiale</h1></div></div><p class="empty">Questo cadetto è stato escluso dal percorso di studio.</p>`; return; }
+  const current=currentExamForMember(viewedMemberId);
+  if(!current){ $('#memberProfileMaterialeView').innerHTML=`<div class="top"><div><h1>Materiale</h1></div></div><p class="empty">Nessun esame corrente.</p>`; return; }
+  const rows=studyMaterials.filter(mt=>mt.exam_id===current.id).map(mt=>`<div class="item"><span><b>${escape(mt.title)}</b>${mt.link_url?` · <button class="secondary" type="button" onclick="showDocument('${escape(mt.link_url).replace(/'/g,"\\'")}','${escape(mt.title).replace(/'/g,"\\'")}','${escape(mt.link_url).replace(/'/g,"\\'")}')">Apri link</button>`:''}${mt.file_path?` · <button class="secondary" onclick="openStudyMaterial('${mt.file_path}','${escape(mt.title).replace(/'/g,"\\'")}')">Apri file</button>`:''}</span></div>`).join('')||'<p class="empty">Nessun materiale disponibile per questo esame.</p>';
+  $('#memberProfileMaterialeView').innerHTML=`<div class="top"><div><h1>Materiale</h1><p class="subtitle">Sbloccato per l'esame corrente: <b>${escape(current.name)}</b> · sola visualizzazione</p></div></div><section class="card"><div class="list">${rows}</div></section>`;
+}
+
 window.decideRequest=async(id,status)=>{
   const request=itemRequests.find(r=>r.id===id);
   const u=(await db.auth.getUser()).data.user;
@@ -631,6 +682,7 @@ window.showMember=id=>{
 $('#closeDetail').onclick=()=>$('#detailDialog').close();
 $('#closePhoto').onclick=()=>$('#photoDialog').close();
 $('#editFromDetail').onclick=()=>{$('#detailDialog').close();editMember(detailMemberId);};
+$('#goToProfileFromDetail').onclick=()=>{$('#detailDialog').close();viewedMemberId=detailMemberId;view='memberProfile';render();};
 
 function memberForm(m={}){
   const selected=(m.member_structures||[]).map(x=>x.structures?.id);
