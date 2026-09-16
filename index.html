@@ -519,16 +519,21 @@ function renderPresenzaStorico(){
   $('#presenzaStoricoView .presenza-storico-status-select').onchange=applyFilters;
 }
 
+function externalEvaluationsHTML(memberId){
+  const evals=externalEvaluations.filter(ev=>ev.member_id===memberId);
+  const rows=evals.map(ev=>`<tr><td>${escape(ev.exam_name)}</td><td>${evaluationOutcomeLabel[ev.outcome]||ev.outcome}</td><td>${ev.exam_date?italianDate(ev.exam_date):'—'}</td></tr>`).join('');
+  return `<section class="card"><h2 style="margin-top:0">Valutazioni esterne al percorso</h2><div class="table-wrap"><table><thead><tr><th>Esame</th><th>Esito</th><th>Data</th></tr></thead><tbody>${rows||'<tr><td colspan="3" class="empty">Nessuna valutazione.</td></tr>'}</tbody></table></div></section>`;
+}
 function renderProfiloEsami(){
   const member=members.find(m=>m.id===currentProfileMemberId);
   if(member?.study_excluded){
-    $('#profiloEsamiView').innerHTML=`<div class="top"><div><h1>Esami</h1></div></div><section class="card"><p class="empty">Sei stato escluso dal percorso di studio dopo aver bocciato lo stesso esame per 3 volte.</p></section>`;
+    $('#profiloEsamiView').innerHTML=`<div class="top"><div><h1>Esami</h1></div></div><section class="card"><p class="empty">Sei stato escluso dal percorso di studio dopo aver bocciato lo stesso esame per 3 volte.</p></section>${externalEvaluationsHTML(currentProfileMemberId)}`;
     return;
   }
   const current=currentExamForMember(currentProfileMemberId);
   const myRequests=examRequests.filter(r=>r.member_id===currentProfileMemberId);
   const rows=myRequests.map(r=>`<tr><td>${escape(r.exams?.name||'—')}</td><td>${new Date(r.created_at).toLocaleString('it-IT')}</td><td>${r.scheduled_date?italianDate(r.scheduled_date):'—'}</td><td>${examRequestStatusLabel[r.status]||r.status}</td></tr>`).join('');
-  $('#profiloEsamiView').innerHTML=`<div class="top"><div><h1>Esami</h1><p class="subtitle">${current?`Il tuo esame corrente: <b>${escape(current.name)}</b>`:'Hai completato tutti gli esami disponibili.'}</p></div></div>${current?`<section class="card"><button class="primary" id="requestExamBtn">Richiedi di sostenere l'esame</button></section>`:''}<section class="card"><h2 style="margin-top:0">Le tue richieste</h2><div class="table-wrap"><table><thead><tr><th>Esame</th><th>Data richiesta</th><th>Data esame</th><th>Stato</th></tr></thead><tbody>${rows||'<tr><td colspan="4" class="empty">Nessuna richiesta.</td></tr>'}</tbody></table></div></section>`;
+  $('#profiloEsamiView').innerHTML=`<div class="top"><div><h1>Esami</h1><p class="subtitle">${current?`Il tuo esame corrente: <b>${escape(current.name)}</b>`:'Hai completato tutti gli esami disponibili.'}</p></div></div>${current?`<section class="card"><button class="primary" id="requestExamBtn">Richiedi di sostenere l'esame</button></section>`:''}<section class="card"><h2 style="margin-top:0">Le tue richieste</h2><div class="table-wrap"><table><thead><tr><th>Esame</th><th>Data richiesta</th><th>Data esame</th><th>Stato</th></tr></thead><tbody>${rows||'<tr><td colspan="4" class="empty">Nessuna richiesta.</td></tr>'}</tbody></table></div></section>${externalEvaluationsHTML(currentProfileMemberId)}`;
   if(current) $('#requestExamBtn').onclick=async()=>{
     if(myRequests.some(r=>r.exam_id===current.id && r.status==='pending')) return flash('Hai già una richiesta in attesa per questo esame.',true);
     const r=await db.from('exam_requests').insert({member_id:currentProfileMemberId,exam_id:current.id});
@@ -576,11 +581,11 @@ function renderMemberProfileRichieste(){
 }
 function renderMemberProfileEsami(){
   const m=members.find(x=>x.id===viewedMemberId);
-  if(m?.study_excluded){ $('#memberProfileEsamiView').innerHTML=`<div class="top"><div><h1>Esami</h1></div></div><section class="card"><p class="empty">Questo cadetto è stato escluso dal percorso di studio.</p></section>`; return; }
+  if(m?.study_excluded){ $('#memberProfileEsamiView').innerHTML=`<div class="top"><div><h1>Esami</h1></div></div><section class="card"><p class="empty">Questo cadetto è stato escluso dal percorso di studio.</p></section>${externalEvaluationsHTML(viewedMemberId)}`; return; }
   const current=currentExamForMember(viewedMemberId);
   const memberRequests=examRequests.filter(r=>r.member_id===viewedMemberId);
   const rows=memberRequests.map(r=>`<tr><td>${escape(r.exams?.name||'—')}</td><td>${new Date(r.created_at).toLocaleString('it-IT')}</td><td>${r.scheduled_date?italianDate(r.scheduled_date):'—'}</td><td>${examRequestStatusLabel[r.status]||r.status}</td></tr>`).join('');
-  $('#memberProfileEsamiView').innerHTML=`<div class="top"><div><h1>Esami</h1><p class="subtitle">${current?`Esame corrente: <b>${escape(current.name)}</b>`:'Ha completato tutti gli esami disponibili.'} · sola visualizzazione</p></div></div><section class="card"><h2 style="margin-top:0">Richieste d'esame</h2><div class="table-wrap"><table><thead><tr><th>Esame</th><th>Data richiesta</th><th>Data esame</th><th>Stato</th></tr></thead><tbody>${rows||'<tr><td colspan="4" class="empty">Nessuna richiesta.</td></tr>'}</tbody></table></div></section>`;
+  $('#memberProfileEsamiView').innerHTML=`<div class="top"><div><h1>Esami</h1><p class="subtitle">${current?`Esame corrente: <b>${escape(current.name)}</b>`:'Ha completato tutti gli esami disponibili.'} · sola visualizzazione</p></div></div><section class="card"><h2 style="margin-top:0">Richieste d'esame</h2><div class="table-wrap"><table><thead><tr><th>Esame</th><th>Data richiesta</th><th>Data esame</th><th>Stato</th></tr></thead><tbody>${rows||'<tr><td colspan="4" class="empty">Nessuna richiesta.</td></tr>'}</tbody></table></div></section>${externalEvaluationsHTML(viewedMemberId)}`;
 }
 function renderMemberProfileMateriale(){
   const m=members.find(x=>x.id===viewedMemberId);
