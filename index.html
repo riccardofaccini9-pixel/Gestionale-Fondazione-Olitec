@@ -116,10 +116,11 @@ function bindStructureSelector(viewId,rerender){
 }
 function renderInventory(){
   if(!inventoryStructureId && structures.length) inventoryStructureId=structures[0].id;
-  $('#inventoryView').innerHTML=`<div class="top"><div><h1>Inventario</h1><p class="subtitle">Scegli quale inventario consultare.</p></div><div class="actions"><button class="secondary" id="exportInventoryBtn">Esporta inventario (CSV)</button><button class="secondary" id="exportHistoryBtn">Esporta storico (CSV)</button></div></div>${structureSelectorHTML()}<div class="menu-grid"><button class="menu-card" data-view="inventoryFood"><b>Beni alimentari</b><span>Scorte alimentari.</span></button><button class="menu-card" data-view="inventoryEquipment"><b>Attrezzature</b><span>Strumenti, dotazioni e materiali durevoli.</span></button><button class="menu-card" data-view="inventoryClothing"><b>Vestiario</b><span>Uniformi, borse e capi di abbigliamento.</span></button><button class="menu-card" data-view="inventoryConsumables"><b>Materiale di consumo</b><span>Prodotti per la pulizia e materiale di consumo.</span></button><button class="menu-card" data-view="requests"><b>Richieste</b><span>Storico delle richieste di beni e approvazioni.</span></button></div>`;
+  $('#inventoryView').innerHTML=`<div class="top"><div><h1>Inventario</h1><p class="subtitle">Scegli quale inventario consultare.</p></div><div class="actions"><button class="primary" id="exportStructureBtn">Esporta questa casa (CSV)</button><button class="secondary" id="exportInventoryBtn">Esporta inventario (CSV)</button><button class="secondary" id="exportHistoryBtn">Esporta storico (CSV)</button></div></div>${structureSelectorHTML()}<div class="menu-grid"><button class="menu-card" data-view="inventoryFood"><b>Beni alimentari</b><span>Scorte alimentari.</span></button><button class="menu-card" data-view="inventoryEquipment"><b>Attrezzature</b><span>Strumenti, dotazioni e materiali durevoli.</span></button><button class="menu-card" data-view="inventoryClothing"><b>Vestiario</b><span>Uniformi, borse e capi di abbigliamento.</span></button><button class="menu-card" data-view="inventoryConsumables"><b>Materiale di consumo</b><span>Prodotti per la pulizia e materiale di consumo.</span></button><button class="menu-card" data-view="requests"><b>Richieste</b><span>Storico delle richieste di beni e approvazioni.</span></button></div>`;
   bindStructureSelector('inventoryView',renderInventory);
   $('#inventoryView').querySelectorAll('[data-view]').forEach(b=>b.onclick=()=>{view=b.dataset.view;render()});
   $('#exportInventoryBtn').onclick=exportInventoryCsv;
+  $('#exportStructureBtn').onclick=exportStructureCsv;
   $('#exportHistoryBtn').onclick=exportInventoryHistoryCsv;
 }
 function downloadCsv(filename,rows){
@@ -136,6 +137,14 @@ function exportInventoryCsv(){
     rows.push([structureName(it.structure_id),inventoryCategoryMeta[it.category]?.title||it.category,it.name,it.variant||'',it.quantity,it.unit_cost??'',it.notes||'']);
   });
   downloadCsv('inventario.csv',rows);
+}
+function exportStructureCsv(){
+  const st=structures.find(s=>s.id===inventoryStructureId);
+  const rows=[['Foto','Nome','Quantità','Posizione']];
+  inventoryItems.filter(it=>it.structure_id===inventoryStructureId).sort((a,b)=>a.name.localeCompare(b.name)||sizeRank(a.variant)-sizeRank(b.variant)).forEach(it=>{
+    rows.push([it.photo_url||'',it.name+(it.variant?' — '+it.variant:''),it.quantity,it.position||'']);
+  });
+  downloadCsv('inventario-'+(st?.name||'casa').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')+'.csv',rows);
 }
 function exportInventoryHistoryCsv(){
   const rows=[['Tipo','Membro','Articolo','Inventario','Quantità','Data','Stato','Motivo rifiuto']];
