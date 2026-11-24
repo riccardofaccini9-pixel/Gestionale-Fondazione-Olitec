@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Olitec | Gestione</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <style>
 :root{--green:#176044;--dark:#173d2e;--soft:#e4f2ea;--ink:#192721;--muted:#627169;--line:#dce4de;--paper:#f7f7f2}*{box-sizing:border-box}body{margin:0;font-family:Inter,system-ui,sans-serif;background:var(--paper);color:var(--ink)}button,input,select,textarea{font:inherit}button{cursor:pointer}.hidden{display:none!important}.login{min-height:100vh;display:grid;place-items:center;padding:20px}.login-card,.card{background:#fff;border:1px solid var(--line);border-radius:14px;box-shadow:0 10px 30px #173d2e14}.login-card{width:min(420px,100%);padding:30px}.login h1{margin:0;font-family:Georgia,serif;font-size:2rem}.login p{color:var(--muted)}label{display:grid;gap:6px;font-size:.85rem;font-weight:700;margin:16px 0}input,select,textarea{width:100%;padding:10px 11px;border:1px solid #cbd8cf;border-radius:8px;background:#fff}.primary{border:0;border-radius:8px;padding:11px 15px;background:var(--green);color:#fff;font-weight:700}.secondary{border:1px solid var(--line);border-radius:8px;padding:10px 13px;background:#fff;color:#385247;font-weight:700}.danger{background:#fff0ef;color:#a43c37;border:0;border-radius:8px;padding:9px 11px}.app{min-height:100vh;display:grid;grid-template-columns:235px 1fr}aside{background:var(--dark);color:#fff;padding:26px 16px;display:flex;flex-direction:column;gap:25px}.brand{padding:0 10px}.brand small{display:block;letter-spacing:.12em;color:#b6d3c4;text-transform:uppercase;font-size:.65rem}.brand strong{font:1.7rem Georgia,serif}nav{display:grid;gap:5px}nav button{border:0;background:transparent;color:#c5dacf;text-align:left;padding:11px;border-radius:8px}nav button.active,nav button:hover{background:#29634b;color:#fff}.logout{margin-top:auto}main{padding:32px clamp(18px,4vw,58px);max-width:1450px;width:100%}.top{display:flex;justify-content:space-between;align-items:flex-start;gap:15px;margin-bottom:24px}h1{margin:0;font-size:2rem}.subtitle{margin:5px 0;color:var(--muted)}.card{padding:20px;margin-bottom:20px}.toolbar{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px}.toolbar input{flex:1;min-width:180px}.table-wrap{overflow:auto}table{border-collapse:collapse;width:100%;min-width:680px}th,td{text-align:left;padding:13px;border-bottom:1px solid #edf0ed}th{font-size:.72rem;text-transform:uppercase;color:var(--muted);letter-spacing:.05em}.chips{display:flex;gap:5px;flex-wrap:wrap}.chip{background:var(--soft);color:#18563d;border-radius:20px;padding:3px 8px;font-size:.75rem}.empty{color:var(--muted);padding:20px 0}.form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}.span-2{grid-column:span 2}.check-list{border:1px solid #cbd8cf;border-radius:8px;padding:10px;display:flex;gap:12px;flex-wrap:wrap;min-height:44px}.check{display:flex;align-items:center;gap:6px;font-weight:500;font-size:.9rem}.check input{width:auto}.actions{display:flex;gap:8px;flex-wrap:wrap}.notice{padding:10px 12px;border-radius:8px;background:#fff6d9;color:#725500;margin:0 0 16px}.ok{background:var(--soft);color:#18563d}.two{display:grid;grid-template-columns:1fr 1fr;gap:20px}.list{display:grid;gap:8px}.item{border:1px solid var(--line);border-radius:8px;padding:10px;display:flex;justify-content:space-between;gap:10px;align-items:center}.select-box{max-height:250px;overflow:auto}.footer{color:var(--muted);font-size:.8rem;margin-top:10px}
 .person{display:flex;align-items:center;gap:10px}.avatar{width:36px;height:36px;border-radius:50%;object-fit:cover;background:var(--soft);display:grid;place-items:center;font-weight:800;color:var(--green);flex:none;border:0;padding:0}.photo-button{border:0;background:transparent;padding:0;border-radius:50%;display:flex}.name-button{border:0;background:transparent;padding:0;text-align:left;color:var(--ink);font-weight:800;font-size:1em}.name-button:hover{color:var(--green);text-decoration:underline}.grade-badge{display:inline-flex;align-items:center;gap:7px}.grade-thumb{width:26px;height:26px;border-radius:6px;object-fit:cover;background:var(--soft);display:grid;place-items:center;color:var(--green);font-size:.8rem}.field-row{display:flex;gap:10px;align-items:center;margin-bottom:12px}.field-row input[type=file]{border:0;padding:0}.menu-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:16px}.menu-card{text-align:left;border:1px solid var(--line);border-radius:14px;background:#fff;padding:20px;box-shadow:0 10px 30px #173d2e14}.menu-card b{display:block;font-size:1.1rem;margin-bottom:6px}.menu-card span{color:var(--muted);font-size:.88rem}.quick-actions{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px}
@@ -116,7 +117,7 @@ function bindStructureSelector(viewId,rerender){
 }
 function renderInventory(){
   if(!inventoryStructureId && structures.length) inventoryStructureId=structures[0].id;
-  $('#inventoryView').innerHTML=`<div class="top"><div><h1>Inventario</h1><p class="subtitle">Scegli quale inventario consultare.</p></div><div class="actions"><button class="primary" id="exportStructureBtn">Esporta questa casa (CSV)</button><button class="secondary" id="exportInventoryBtn">Esporta inventario (CSV)</button><button class="secondary" id="exportHistoryBtn">Esporta storico (CSV)</button></div></div>${structureSelectorHTML()}<div class="menu-grid"><button class="menu-card" data-view="inventoryFood"><b>Beni alimentari</b><span>Scorte alimentari.</span></button><button class="menu-card" data-view="inventoryEquipment"><b>Attrezzature</b><span>Strumenti, dotazioni e materiali durevoli.</span></button><button class="menu-card" data-view="inventoryClothing"><b>Vestiario</b><span>Uniformi, borse e capi di abbigliamento.</span></button><button class="menu-card" data-view="inventoryConsumables"><b>Materiale di consumo</b><span>Prodotti per la pulizia e materiale di consumo.</span></button><button class="menu-card" data-view="requests"><b>Richieste</b><span>Storico delle richieste di beni e approvazioni.</span></button></div>`;
+  $('#inventoryView').innerHTML=`<div class="top"><div><h1>Inventario</h1><p class="subtitle">Scegli quale inventario consultare.</p></div><div class="actions"><button class="primary" id="exportStructureBtn">Esporta questa casa (ZIP)</button><button class="secondary" id="exportInventoryBtn">Esporta inventario (CSV)</button><button class="secondary" id="exportHistoryBtn">Esporta storico (CSV)</button></div></div>${structureSelectorHTML()}<div class="menu-grid"><button class="menu-card" data-view="inventoryFood"><b>Beni alimentari</b><span>Scorte alimentari.</span></button><button class="menu-card" data-view="inventoryEquipment"><b>Attrezzature</b><span>Strumenti, dotazioni e materiali durevoli.</span></button><button class="menu-card" data-view="inventoryClothing"><b>Vestiario</b><span>Uniformi, borse e capi di abbigliamento.</span></button><button class="menu-card" data-view="inventoryConsumables"><b>Materiale di consumo</b><span>Prodotti per la pulizia e materiale di consumo.</span></button><button class="menu-card" data-view="requests"><b>Richieste</b><span>Storico delle richieste di beni e approvazioni.</span></button></div>`;
   bindStructureSelector('inventoryView',renderInventory);
   $('#inventoryView').querySelectorAll('[data-view]').forEach(b=>b.onclick=()=>{view=b.dataset.view;render()});
   $('#exportInventoryBtn').onclick=exportInventoryCsv;
@@ -138,13 +139,39 @@ function exportInventoryCsv(){
   });
   downloadCsv('inventario.csv',rows);
 }
-function exportStructureCsv(){
+async function exportStructureCsv(){
+  if(!window.JSZip) return flash('Libreria ZIP non caricata, ricarica la pagina e riprova.',true);
   const st=structures.find(s=>s.id===inventoryStructureId);
-  const rows=[['Foto','Nome','Quantità','Posizione']];
-  inventoryItems.filter(it=>it.structure_id===inventoryStructureId).sort((a,b)=>a.name.localeCompare(b.name)||sizeRank(a.variant)-sizeRank(b.variant)).forEach(it=>{
-    rows.push([it.photo_url||'',it.name+(it.variant?' — '+it.variant:''),it.quantity,it.position||'']);
-  });
-  downloadCsv('inventario-'+(st?.name||'casa').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')+'.csv',rows);
+  const slug=(st?.name||'casa').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
+  const items=inventoryItems.filter(it=>it.structure_id===inventoryStructureId).sort((a,b)=>a.name.localeCompare(b.name)||sizeRank(a.variant)-sizeRank(b.variant));
+  const btn=$('#exportStructureBtn'); const label=btn.textContent; btn.disabled=true;
+  const zip=new JSZip(), rows=[['Foto','Nome','Quantità','Posizione','Link foto online']], missing=[];
+  let done=0;
+  for(const [i,it] of items.entries()){
+    const name=it.name+(it.variant?' — '+it.variant:'');
+    let file='';
+    if(it.photo_url){
+      btn.textContent=`Scarico foto ${++done}/${items.filter(x=>x.photo_url).length}…`;
+      try{
+        const res=await fetch(it.photo_url); if(!res.ok) throw new Error(res.status);
+        const blob=await res.blob();
+        const ext=(it.photo_url.split('?')[0].match(/\.([a-z0-9]{2,5})$/i)||[])[1]||(blob.type.split('/')[1]||'jpg').replace('jpeg','jpg');
+        const base=name.normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^a-zA-Z0-9]+/g,'-').replace(/^-|-$/g,'').slice(0,60)||'articolo';
+        file=`foto/${String(i+1).padStart(3,'0')}-${base}.${ext.toLowerCase()}`;
+        zip.file(file,blob);
+      }catch(e){ missing.push(name); }
+    }
+    rows.push([file,name,it.quantity,it.position||'',it.photo_url||'']);
+  }
+  const cell=v=>{const s=String(v??'');return /[";\r\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s;};
+  zip.file('inventario.csv','﻿'+rows.map(r=>r.map(cell).join(';')).join('\r\n'));
+  btn.textContent='Creo lo ZIP…';
+  const blob=await zip.generateAsync({type:'blob'});
+  const url=URL.createObjectURL(blob), a=document.createElement('a');
+  a.href=url; a.download='inventario-'+slug+'.zip'; document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),2000);
+  btn.textContent=label; btn.disabled=false;
+  flash(missing.length?`ZIP scaricato, ma ${missing.length} foto non scaricabili: ${missing.join(', ')}`:`ZIP scaricato: ${items.length} articoli.`,missing.length>0);
 }
 function exportInventoryHistoryCsv(){
   const rows=[['Tipo','Membro','Articolo','Inventario','Quantità','Data','Stato','Motivo rifiuto']];
